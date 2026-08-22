@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>שולת המוקשים | Cyber Minesweeper</title>
+  <meta name="description" content="משחק שולה המוקשים מודרני בעיצוב סייבר-פאנק וזכוכית מרהיב, שלב אחר שלב." />
+
+  <!-- Google Fonts: Heebo (Hebrew) + Orbitron (Digital Timer) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&family=Orbitron:wght@500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ═══════════════════════════════════════
+       DESIGN SYSTEM & VARIABLES
+       ═══════════════════════════════════════ */
+    :root {
+      --bg-color: #030712;
+      --panel-bg: rgba(17, 24, 39, 0.65);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --primary-neon: #38bdf8;
+      --secondary-neon: #10b981;
+      --danger-neon: #f43f5e;
+      --accent-neon: #a855f7;
+      
+      --cell-unrevealed: linear-gradient(135deg, #1f2937, #111827);
+      --cell-hover: linear-gradient(135deg, #374151, #1f2937);
+      --cell-revealed: #0b0f19;
+      --cell-border: rgba(255, 255, 255, 0.04);
+      
+      /* Cell number colors */
+      --num-1: #38bdf8; /* Blue */
+      --num-2: #34d399; /* Green */
+      --num-3: #f87171; /* Red */
+      --num-4: #c084fc; /* Purple */
+      --num-5: #fb7185; /* Pink */
+      --num-6: #2dd4bf; /* Teal */
+      --num-7: #fbbf24; /* Yellow */
+      --num-8: #f472b6; /* Hot Pink */
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Heebo', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: #f3f4f6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Ambient animated neon backgrounds */
+    .bg-orbs {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.15;
+      will-change: transform;
+    }
+
+    .orb-1 {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, var(--primary-neon) 0%, transparent 70%);
+      top: -100px;
+      left: -100px;
+      animation: float-1 25s ease-in-out infinite alternate;
+    }
+
+    .orb-2 {
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--accent-neon) 0%, transparent 70%);
+      bottom: -150px;
+      right: -100px;
+      animation: float-2 30s ease-in-out infinite alternate;
+    }
+
+    @keyframes float-1 {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(100px, 80px) scale(1.2); }
+    }
+
+    @keyframes float-2 {
+      0% { transform: translate(0, 0) scale(1.2); }
+      100% { transform: translate(-120px, -50px) scale(0.9); }
+    }
+
+    /* Subtle dot-grid overlay */
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1.5px, transparent 1.5px);
+      background-size: 32px 32px;
+      mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 40%, transparent 100%);
+    }
+
+    /* ═══════════════════════════════════════
+       GLASS CONTAINER & LAYOUT
+       ═══════════════════════════════════════ */
+    .app-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 900px;
+      padding: 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-size: 2.75rem;
+      font-weight: 900;
+      letter-spacing: -0.05em;
+      background: linear-gradient(135deg, #fff 30%, #7dd3fc 70%, #a855f7 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.25));
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #9ca3af;
+      font-weight: 400;
+    }
+
+    /* Main glass card */
+    .glass-card {
+      width: 100%;
+      background: var(--panel-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Difficulty selector and options */
+    .control-panel {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 1.25rem;
+    }
+
+    .difficulty-group {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      color: #d1d5db;
+      padding: 0.6rem 1.2rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--primary-neon);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .btn.active {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(168, 85, 247, 0.1));
+      border-color: var(--primary-neon);
+      color: #e0f2fe;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      justify-content: center;
+    }
+
+    /* Status Bar with Timer and Mine Counter */
+    .status-bar {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 16px;
+      padding: 0.85rem 1.5rem;
+    }
+
+    .stat-display {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .stat-value {
+      font-family: 'Orbitron', monospace;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--primary-neon);
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    }
+
+    .stat-value.danger {
+      color: var(--danger-neon);
+      text-shadow: 0 0 10px rgba(244, 63, 94, 0.3);
+    }
+
+    /* Smiley reset button */
+    .face-btn {
+      font-size: 1.8rem;
+      background: linear-gradient(135deg, #1f2937, #111827);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .face-btn:hover {
+      transform: scale(1.1) rotate(5deg);
+      border-color: var(--primary-neon);
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+    }
+
+    .face-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* ═══════════════════════════════════════
+       THE GAME BOARD & CELLS
+       ═══════════════════════════════════════ */
+    .board-container {
+      width: 100%;
+      overflow-x: auto;
+      padding: 0.25rem;
+      display: flex;
+      justify-content: center;
+      border-radius: 16px;
+      scrollbar-width: thin;
+    }
+
+    .board {
+      display: grid;
+      background: rgba(0, 0, 0, 0.4);
+      border: 2px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 6px;
+      gap: 5px;
+      box-shadow: inset 0 4px 20px rgba(0, 0, 0, 0.6);
+      width: max-content;
+    }
+
+    .cell {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      background: var(--cell-unrevealed);
+      border: 1px solid var(--cell-border);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 2px 4px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 900;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .cell:hover:not(.revealed):not(.flagged) {
+      background: var(--cell-hover);
+      border-color: var(--primary-neon);
+      transform: scale(1.05);
+      z-index: 2;
+    }
+
+    .cell.revealed {
+      background: var(--cell-revealed);
+      box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6);
+      border-color: var(--cell-border);
+      cursor: default;
+    }
+
+    .cell.flagged::before {
+      content: "🚩";
+      font-size: 0.95rem;
+      filter: drop-shadow(0 0 5px rgba(244, 63, 94, 0.5));
+    }
+
+    .cell.mine.revealed {
+      background: linear-gradient(135deg, #4c0519, #881337);
+      border-color: var(--danger-neon);
+      box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
+    }
+
+    .cell.mine.revealed::before {
+      content: "💣";
+      font-size: 1.1rem;
+      animation: explode 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes explode {
+      0% { transform: scale(0.5) rotate(-45deg); }
+      100% { transform: scale(1.1) rotate(0); }
+    }
+
+    /* Modern colors per number */
+    .cell.num-1 { color: var(--num-1); text-shadow: 0 0 6px rgba(56, 189, 248, 0.2); }
+    .cell.num-2 { color: var(--num-2); text-shadow: 0 0 6px rgba(52, 211, 153, 0.2); }
+    .cell.num-3 { color: var(--num-3); text-shadow: 0 0 6px rgba(248, 113, 113, 0.2); }
+    .cell.num-4 { color: var(--num-4); text-shadow: 0 0 6px rgba(192, 132, 252, 0.2); }
+    .cell.num-5 { color: var(--num-5); text-shadow: 0 0 6px rgba(251, 113, 133, 0.2); }
+    .cell.num-6 { color: var(--num-6); text-shadow: 0 0 6px rgba(45, 212, 191, 0.2); }
+    .cell.num-7 { color: var(--num-7); text-shadow: 0 0 6px rgba(251, 191, 36, 0.2); }
+    .cell.num-8 { color: var(--num-8); text-shadow: 0 0 6px rgba(244, 114, 182, 0.2); }
+
+    /* Custom configuration popup overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      background: #0f172a;
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+      transform: translateY(-20px);
+      transition: transform 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .modal-overlay.active .modal {
+      transform: translateY(0);
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: #fff;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 0.5rem;
+    }
+
+    .input-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .input-field label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #9ca3af;
+    }
+
+    .input-field input {
+      background: rgba(2, 6, 23, 0.8);
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      color: white;
+      padding: 0.65rem;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-field input:focus {
+      border-color: var(--primary-neon);
+    }
+
+    /* ═══════════════════════════════════════
+       LEADERBOARD
+       ═══════════════════════════════════════ */
+    .leaderboard-section {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 16px;
+      padding: 1.25rem;
+    }
+
+    .leaderboard-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #e2e8f0;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .leaderboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .score-item {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 10px;
+      padding: 0.6rem 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .score-label {
+      font-size: 0.85rem;
+      color: #9ca3af;
+      font-weight: 500;
+    }
+
+    .score-val {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--secondary-neon);
+    }
+
+    /* Canvas Confetti */
+    #confetti-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    /* Custom Scrollbar for board overflow */
+    .board-container::-webkit-scrollbar {
+      height: 8px;
+    }
+    .board-container::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 4px;
+    }
+    .board-container::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.2);
+      border-radius: 4px;
+    }
+    .board-container::-webkit-scrollbar-thumb:hover {
+      background: rgba(56, 189, 248, 0.4);
+    }
+
+    /* Helper instruction box */
+    .instructions {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-top: 0.5rem;
+      line-height: 1.4;
+    }
+
+    /* Sound notification overlay */
+    .sound-badge {
+      font-size: 0.75rem;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .sound-badge.off {
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+      color: #fb7185;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient glowing orbs & grid -->
+  <div class="bg-orbs" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="grid-overlay"></div>
+  </div>
+
+  <!-- Confetti Canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Global Navigation Bar -->
+  <nav style="position: relative; z-index: 50; width: 100%; max-width: 900px; padding: 1.5rem 1.5rem 0 1.5rem; display: flex; justify-content: center; margin: 0 auto;">
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; border-radius: 16px; background: rgba(17, 24, 39, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(24px); width: 100%;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 1.25rem;">🎮</span>
+        <span style="font-weight: 900; font-size: 0.9rem; background: linear-gradient(90deg, #38bdf8, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">קומפלקס משחקים ואפליקציות</span>
+      </div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="index.html" class="btn" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">⚡ מחשבון אנרגיה</a>
+        <a href="minesweeper.html" class="btn active" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">💣 שולה המוקשים</a>
+        <a href="sudoku.html" class="btn" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">🧩 סודוקו ניאון</a>
+        <a href="detector.html" class="btn" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">🌈 גילוי נטייה</a>
+        <a href="buchris.html" class="btn" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">🕸️ מלכודת בוכריסים</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="app-container" style="padding-top: 1rem;">
+    <header>
+      <h1>שולת המוקשים</h1>
+      <div class="subtitle">חווית Minesweeper מתקדמת ומודרנית בעיצוב Glassmorphism</div>
+    </header>
+
+    <main class="glass-card">
+      <!-- Control Panel -->
+      <div class="control-panel">
+        <div class="difficulty-group">
+          <button class="btn active" id="diff-easy" onclick="setDifficulty('easy')">🔥 קל (9x9)</button>
+          <button class="btn" id="diff-medium" onclick="setDifficulty('medium')">⚡ בינוני (16x16)</button>
+          <button class="btn" id="diff-hard" onclick="setDifficulty('hard')">💀 קשה (30x16)</button>
+          <button class="btn" id="diff-custom" onclick="openCustomModal()">⚙️ מותאם</button>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem;">
+          <!-- Sound button -->
+          <button class="btn icon-btn" id="sound-btn" onclick="toggleSound()" title="הפעל/כבה שמע">🔊</button>
+        </div>
+      </div>
+
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <!-- Mines remaining -->
+        <div class="stat-display">
+          <span class="stat-label">מוקשים</span>
+          <span class="stat-value" id="mine-counter">010</span>
+        </div>
+
+        <!-- Smiley Smiley -->
+        <button class="face-btn" id="face" onclick="initGame()">😊</button>
+
+        <!-- Timer -->
+        <div class="stat-display">
+          <span class="stat-label">זמן</span>
+          <span class="stat-value" id="timer">000</span>
+        </div>
+      </div>
+
+      <!-- Game Board -->
+      <div class="board-container">
+        <div class="board" id="board"></div>
+      </div>
+
+      <!-- Interactive game feedback & instruction info -->
+      <div class="instructions">
+        קליק שמאלי: חשוף תא | קליק ימני: סמן דגל 🚩<br>
+        קליק כפול על תא מספר: חשיפה מהירה (Chording) כאשר כמות הדגלים מתאימה למספר
+      </div>
+
+      <!-- High Scores Leaderboard -->
+      <div class="leaderboard-section">
+        <div class="leaderboard-title">🏆 שיאים אישיים (זמן הכי מהיר)</div>
+        <div class="leaderboard-grid">
+          <div class="score-item">
+            <span class="score-label">🔥 דרגה קלה (9x9):</span>
+            <span class="score-val" id="best-easy">--</span>
+          </div>
+          <div class="score-item">
+            <span class="score-label">⚡ דרגה בינונית (16x16):</span>
+            <span class="score-val" id="best-medium">--</span>
+          </div>
+          <div class="score-item">
+            <span class="score-label">💀 דרגה קשה (30x16):</span>
+            <span class="score-val" id="best-hard">--</span>
+          </div>
+          <div class="score-item">
+            <span class="score-label">🔊 סאונד מופעל:</span>
+            <span id="sound-badge-status" class="sound-badge">שמע פעיל</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Custom Configuration Modal Overlay -->
+  <div class="modal-overlay" id="custom-modal">
+    <div class="modal">
+      <div class="modal-title">לוח מותאם אישית</div>
+      <div class="input-field">
+        <label for="custom-rows">מספר שורות (9-24)</label>
+        <input type="number" id="custom-rows" min="9" max="24" value="10">
+      </div>
+      <div class="input-field">
+        <label for="custom-cols">מספר עמודות (9-30)</label>
+        <input type="number" id="custom-cols" min="9" max="30" value="10">
+      </div>
+      <div class="input-field">
+        <label for="custom-mines">כמות מוקשים (5-150)</label>
+        <input type="number" id="custom-mines" min="5" max="150" value="15">
+      </div>
+      <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
+        <button class="btn" style="flex: 1;" onclick="applyCustomSettings()">אישור</button>
+        <button class="btn" style="flex: 1; background: rgba(244, 63, 94, 0.1); border-color: rgba(244, 63, 94, 0.2);" onclick="closeCustomModal()">ביטול</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ═══════════════════════════════════════
+       SOUND SYNTHESIZER (Web Audio API)
+       ═══════════════════════════════════════ */
+    let audioCtx = null;
+    let isSoundEnabled = true;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playSound(type) {
+      if (!isSoundEnabled) return;
+      try {
+        initAudio();
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'reveal') {
+          // Soft short high pop
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(600, now);
+          osc.frequency.exponentialRampToValueAtTime(150, now + 0.08);
+          gainNode.gain.setValueAtTime(0.12, now);
+          gainNode.gain.linearRampToValueAtTime(0.01, now + 0.08);
+          osc.start(now);
+          osc.stop(now + 0.08);
+        } else if (type === 'flag') {
+          // Nice retro coin-like beep
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(520, now);
+          osc.frequency.setValueAtTime(660, now + 0.06);
+          gainNode.gain.setValueAtTime(0.1, now);
+          gainNode.gain.linearRampToValueAtTime(0.01, now + 0.15);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        } else if (type === 'explode') {
+          // Low white-noise like explosion rumble using low frequency sawtooth
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(100, now);
+          osc.frequency.exponentialRampToValueAtTime(30, now + 0.6);
+          gainNode.gain.setValueAtTime(0.3, now);
+          gainNode.gain.linearRampToValueAtTime(0.01, now + 0.65);
+          osc.start(now);
+          osc.stop(now + 0.65);
+        } else if (type === 'win') {
+          // Happy synth arpeggio!
+          const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+          notes.forEach((freq, index) => {
+            const itemOsc = audioCtx.createOscillator();
+            const itemGain = audioCtx.createGain();
+            itemOsc.connect(itemGain);
+            itemGain.connect(audioCtx.destination);
+            
+            itemOsc.type = 'sine';
+            itemOsc.frequency.setValueAtTime(freq, now + index * 0.1);
+            itemGain.gain.setValueAtTime(0.12, now + index * 0.1);
+            itemGain.gain.linearRampToValueAtTime(0.01, now + index * 0.1 + 0.25);
+            
+            itemOsc.start(now + index * 0.1);
+            itemOsc.stop(now + index * 0.1 + 0.25);
+          });
+        }
+      } catch (e) {
+        console.warn("Audio Context error:", e);
+      }
+    }
+
+    function toggleSound() {
+      isSoundEnabled = !isSoundEnabled;
+      const soundBtn = document.getElementById('sound-btn');
+      const badge = document.getElementById('sound-badge-status');
+      if (isSoundEnabled) {
+        soundBtn.textContent = '🔊';
+        badge.textContent = 'שמע פעיל';
+        badge.className = 'sound-badge';
+        playSound('reveal');
+      } else {
+        soundBtn.textContent = '🔇';
+        badge.textContent = 'שמע כבוי';
+        badge.className = 'sound-badge off';
+      }
+    }
+
+    /* ═══════════════════════════════════════
+       CONFETTI SYSTEM
+       ═══════════════════════════════════════ */
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    let confetti = [];
+    let isConfettiActive = false;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class ConfettiParticle {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height - canvas.height;
+        this.size = Math.random() * 8 + 6;
+        this.color = `hsl(${Math.random() * 360}, 90%, 65%)`;
+        this.speedX = Math.random() * 4 - 2;
+        this.speedY = Math.random() * 4 + 3;
+        this.rotation = Math.random() * 360;
+        this.rotationSpeed = Math.random() * 4 - 2;
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.rotation += this.rotationSpeed;
+        if (this.y > canvas.height) {
+          this.y = -20;
+          this.x = Math.random() * canvas.width;
+        }
+      }
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate((this.rotation * Math.PI) / 180);
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+        ctx.restore();
+      }
+    }
+
+    function startConfetti() {
+      confetti = [];
+      for (let i = 0; i < 120; i++) {
+        confetti.push(new ConfettiParticle());
+      }
+      isConfettiActive = true;
+      animateConfetti();
+    }
+
+    function stopConfetti() {
+      isConfettiActive = false;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function animateConfetti() {
+      if (!isConfettiActive) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      confetti.forEach((p) => {
+        p.update();
+        p.draw();
+      });
+      requestAnimationFrame(animateConfetti);
+    }
+
+    /* ═══════════════════════════════════════
+       GAME CONFIGURATION & STATE
+       ═══════════════════════════════════════ */
+    let config = {
+      rows: 9,
+      cols: 9,
+      mines: 10,
+      currentDifficulty: 'easy'
+    };
+
+    let boardState = [];
+    let isFirstClick = true;
+    let isGameOver = false;
+    let revealedCount = 0;
+    let flaggedCount = 0;
+    let timerInterval = null;
+    let timeElapsed = 0;
+
+    const DIFFICULTIES = {
+      easy: { rows: 9, cols: 9, mines: 10 },
+      medium: { rows: 16, cols: 16, mines: 40 },
+      hard: { rows: 16, cols: 30, mines: 99 }
+    };
+
+    // Load High Scores
+    function loadHighScores() {
+      document.getElementById('best-easy').textContent = localStorage.getItem('best_easy') ? localStorage.getItem('best_easy') + ' שניות' : '--';
+      document.getElementById('best-medium').textContent = localStorage.getItem('best_medium') ? localStorage.getItem('best_medium') + ' שניות' : '--';
+      document.getElementById('best-hard').textContent = localStorage.getItem('best_hard') ? localStorage.getItem('best_hard') + ' שניות' : '--';
+    }
+
+    function saveHighScore(difficulty, seconds) {
+      if (['easy', 'medium', 'hard'].includes(difficulty)) {
+        const saved = localStorage.getItem(`best_${difficulty}`);
+        if (!saved || seconds < parseInt(saved)) {
+          localStorage.setItem(`best_${difficulty}`, seconds);
+          loadHighScores();
+        }
+      }
+    }
+
+    /* ═══════════════════════════════════════
+       BOARD INITIALIZATION
+       ═══════════════════════════════════════ */
+    function setDifficulty(diff) {
+      if (DIFFICULTIES[diff]) {
+        config.rows = DIFFICULTIES[diff].rows;
+        config.cols = DIFFICULTIES[diff].cols;
+        config.mines = DIFFICULTIES[diff].mines;
+        config.currentDifficulty = diff;
+      }
+      
+      // Update button active state
+      document.querySelectorAll('.control-panel .difficulty-group .btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById(`diff-${diff}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      initGame();
+    }
+
+    function openCustomModal() {
+      document.getElementById('custom-modal').classList.add('active');
+    }
+
+    function closeCustomModal() {
+      document.getElementById('custom-modal').classList.remove('active');
+    }
+
+    function applyCustomSettings() {
+      const rows = parseInt(document.getElementById('custom-rows').value);
+      const cols = parseInt(document.getElementById('custom-cols').value);
+      const mines = parseInt(document.getElementById('custom-mines').value);
+
+      if (isNaN(rows) || rows < 9 || rows > 24) return alert("מספר השורות חייב להיות בין 9 ל-24");
+      if (isNaN(cols) || cols < 9 || cols > 30) return alert("מספר העמודות חייב להיות בין 9 ל-30");
+      if (isNaN(mines) || mines < 5 || mines >= (rows * cols - 9)) return alert(`כמות המוקשים חייבת להיות בין 5 ל-${rows * cols - 10}`);
+
+      config.rows = rows;
+      config.cols = cols;
+      config.mines = mines;
+      config.currentDifficulty = 'custom';
+
+      document.querySelectorAll('.control-panel .difficulty-group .btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('diff-custom').classList.add('active');
+
+      closeCustomModal();
+      initGame();
+    }
+
+    function initGame() {
+      stopConfetti();
+      stopTimer();
+      isFirstClick = true;
+      isGameOver = false;
+      revealedCount = 0;
+      flaggedCount = 0;
+      timeElapsed = 0;
+      
+      document.getElementById('timer').textContent = "000";
+      updateMineCounter();
+      document.getElementById('face').textContent = "😊";
+
+      buildMatrix();
+      renderBoard();
+      loadHighScores();
+    }
+
+    function buildMatrix() {
+      boardState = [];
+      for (let r = 0; r < config.rows; r++) {
+        const row = [];
+        for (let c = 0; c < config.cols; c++) {
+          row.push({
+            row: r,
+            col: c,
+            isMine: false,
+            isRevealed: false,
+            isFlagged: false,
+            neighborMines: 0
+          });
+        }
+        boardState.push(row);
+      }
+    }
+
+    function renderBoard() {
+      const boardElement = document.getElementById('board');
+      boardElement.innerHTML = '';
+      
+      // Dynamic grid CSS grid-template-columns setup
+      boardElement.style.gridTemplateColumns = `repeat(${config.cols}, 32px)`;
+
+      for (let r = 0; r < config.rows; r++) {
+        for (let c = 0; c < config.cols; c++) {
+          const cell = boardState[r][c];
+          const cellBtn = document.createElement('button');
+          cellBtn.id = `cell-${r}-${c}`;
+          cellBtn.className = 'cell';
+          
+          // Attach listeners
+          cellBtn.addEventListener('click', (e) => handleLeftClick(r, c));
+          cellBtn.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            handleRightClick(r, c);
+          });
+          
+          // Chording double-click
+          cellBtn.addEventListener('dblclick', (e) => {
+            handleChording(r, c);
+          });
+
+          boardElement.appendChild(cellBtn);
+        }
+      }
+    }
+
+    /* ═══════════════════════════════════════
+       MINE PLACEMENT & FIRST CLICK SAFETY
+       ═══════════════════════════════════════ */
+    function generateMines(firstRow, firstCol) {
+      let placed = 0;
+      while (placed < config.mines) {
+        const r = Math.floor(Math.random() * config.rows);
+        const c = Math.floor(Math.random() * config.cols);
+
+        // First click safety check: Keep standard 3x3 surrounding zone clear of mines
+        if (Math.abs(r - firstRow) <= 1 && Math.abs(c - firstCol) <= 1) {
+          continue;
+        }
+
+        if (!boardState[r][c].isMine) {
+          boardState[r][c].isMine = true;
+          placed++;
+        }
+      }
+
+      // Calculate neighbor counts
+      for (let r = 0; r < config.rows; r++) {
+        for (let c = 0; c < config.cols; c++) {
+          if (boardState[r][c].isMine) continue;
+          let count = 0;
+          getNeighbors(r, c).forEach((n) => {
+            if (n.isMine) count++;
+          });
+          boardState[r][c].neighborMines = count;
+        }
+      }
+    }
+
+    function getNeighbors(row, col) {
+      const neighbors = [];
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = row + dr;
+          const nc = col + dc;
+          if (nr >= 0 && nr < config.rows && nc >= 0 && nc < config.cols) {
+            neighbors.push(boardState[nr][nc]);
+          }
+        }
+      }
+      return neighbors;
+    }
+
+    /* ═══════════════════════════════════════
+       GAME PLAY / MECHANICS
+       ═══════════════════════════════════════ */
+    function handleLeftClick(row, col) {
+      if (isGameOver) return;
+      const cell = boardState[row][col];
+      if (cell.isRevealed || cell.isFlagged) return;
+
+      if (isFirstClick) {
+        isFirstClick = false;
+        generateMines(row, col);
+        startTimer();
+      }
+
+      revealCell(row, col);
+      checkWinCondition();
+    }
+
+    function handleRightClick(row, col) {
+      if (isGameOver) return;
+      const cell = boardState[row][col];
+      if (cell.isRevealed) return;
+
+      cell.isFlagged = !cell.isFlagged;
+      const cellElement = document.getElementById(`cell-${row}-${col}`);
+      
+      if (cell.isFlagged) {
+        cellElement.classList.add('flagged');
+        flaggedCount++;
+        playSound('flag');
+      } else {
+        cellElement.classList.remove('flagged');
+        flaggedCount--;
+        playSound('reveal');
+      }
+      
+      updateMineCounter();
+    }
+
+    function revealCell(row, col) {
+      const cell = boardState[row][col];
+      if (cell.isRevealed || cell.isFlagged) return;
+
+      cell.isRevealed = true;
+      revealedCount++;
+      const cellElement = document.getElementById(`cell-${row}-${col}`);
+      cellElement.classList.add('revealed');
+
+      if (cell.isMine) {
+        triggerLoss(row, col);
+        return;
+      }
+
+      playSound('reveal');
+
+      if (cell.neighborMines > 0) {
+        cellElement.textContent = cell.neighborMines;
+        cellElement.classList.add(`num-${cell.neighborMines}`);
+      } else {
+        // Safe flood-fill recursion
+        const neighbors = getNeighbors(row, col);
+        neighbors.forEach((n) => {
+          if (!n.isRevealed && !n.isFlagged) {
+            revealCell(n.row, n.col);
+          }
+        });
+      }
+    }
+
+    /* Chording mechanics for advanced speedplay */
+    function handleChording(row, col) {
+      if (isGameOver) return;
+      const cell = boardState[row][col];
+      if (!cell.isRevealed || cell.neighborMines === 0) return;
+
+      const neighbors = getNeighbors(row, col);
+      let flagsCount = 0;
+      
+      neighbors.forEach(n => {
+        if (n.isFlagged) flagsCount++;
+      });
+
+      if (flagsCount === cell.neighborMines) {
+        neighbors.forEach(n => {
+          if (!n.isRevealed && !n.isFlagged) {
+            revealCell(n.row, n.col);
+          }
+        });
+        checkWinCondition();
+      }
+    }
+
+    /* ═══════════════════════════════════════
+       WIN / LOSS HANDLERS
+       ═══════════════════════════════════════ */
+    function checkWinCondition() {
+      const totalCells = config.rows * config.cols;
+      if (revealedCount === totalCells - config.mines && !isGameOver) {
+        isGameOver = true;
+        stopTimer();
+        document.getElementById('face').textContent = "😎";
+        playSound('win');
+        startConfetti();
+        saveHighScore(config.currentDifficulty, timeElapsed);
+        
+        // Auto flag all remaining mines
+        for (let r = 0; r < config.rows; r++) {
+          for (let c = 0; c < config.cols; c++) {
+            const cell = boardState[r][c];
+            if (cell.isMine && !cell.isFlagged) {
+              cell.isFlagged = true;
+              document.getElementById(`cell-${r}-${c}`).classList.add('flagged');
+            }
+          }
+        }
+        flaggedCount = config.mines;
+        updateMineCounter();
+      }
+    }
+
+    function triggerLoss(hitRow, hitCol) {
+      isGameOver = true;
+      stopTimer();
+      document.getElementById('face').textContent = "😵";
+      playSound('explode');
+
+      // Reveal all mines and incorrect flags
+      for (let r = 0; r < config.rows; r++) {
+        for (let c = 0; c < config.cols; c++) {
+          const cell = boardState[r][c];
+          const cellElement = document.getElementById(`cell-${r}-${c}`);
+          
+          if (cell.isMine) {
+            cellElement.classList.add('revealed', 'mine');
+          } else if (cell.isFlagged) {
+            // Crossed red flag symbol style for incorrect flags can go here
+            cellElement.textContent = "❌";
+            cellElement.classList.remove('flagged');
+          }
+        }
+      }
+    }
+
+    /* ═══════════════════════════════════════
+       TIMER & MISC
+       ═══════════════════════════════════════ */
+    function startTimer() {
+      stopTimer();
+      timeElapsed = 0;
+      timerInterval = setInterval(() => {
+        timeElapsed++;
+        if (timeElapsed > 999) timeElapsed = 999;
+        document.getElementById('timer').textContent = String(timeElapsed).padStart(3, '0');
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    function updateMineCounter() {
+      const remaining = config.mines - flaggedCount;
+      const countStr = String(Math.abs(remaining)).padStart(3, '0');
+      const counterElement = document.getElementById('mine-counter');
+      
+      if (remaining < 0) {
+        counterElement.textContent = '-' + countStr.substring(1);
+        counterElement.classList.add('danger');
+      } else {
+        counterElement.textContent = countStr;
+        counterElement.classList.remove('danger');
+      }
+    }
+
+    // Auto load game on page startup
+    window.onload = () => {
+      initGame();
+    };
+  </script>
+</body>
+</html>

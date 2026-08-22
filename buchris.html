@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>מלכודת בוכריסים | Buchris Trap</title>
+  <meta name="description" content="האם אתה בוכריס? גלה עכשיו בשאלון המדעי והמהפכני ביותר!" />
+
+  <!-- Google Fonts: Heebo (Hebrew) + Orbitron -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&family=Orbitron:wght@500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ═══════════════════════════════════════
+       DESIGN SYSTEM & VARIABLES
+       ═══════════════════════════════════════ */
+    :root {
+      --bg-color: #020617;
+      --panel-bg: rgba(15, 23, 42, 0.60);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --primary-neon: #a855f7;
+      --secondary-neon: #38bdf8;
+      --danger-neon: #f43f5e;
+      --accent-neon: #fbbf24;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Heebo', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: #f3f4f6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Ambient animated neon backgrounds */
+    .bg-orbs {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.12;
+      will-change: transform;
+    }
+
+    .orb-1 {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, var(--primary-neon) 0%, transparent 70%);
+      top: -100px;
+      left: -100px;
+      animation: float-1 25s ease-in-out infinite alternate;
+    }
+
+    .orb-2 {
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--accent-neon) 0%, transparent 70%);
+      bottom: -150px;
+      right: -100px;
+      animation: float-2 30s ease-in-out infinite alternate;
+    }
+
+    @keyframes float-1 {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(100px, 80px) scale(1.2); }
+    }
+
+    @keyframes float-2 {
+      0% { transform: translate(0, 0) scale(1.2); }
+      100% { transform: translate(-120px, -50px) scale(0.9); }
+    }
+
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1.5px, transparent 1.5px);
+      background-size: 32px 32px;
+      mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 40%, transparent 100%);
+    }
+
+    /* ═══════════════════════════════════════
+       GLASS CONTAINER & LAYOUT
+       ═══════════════════════════════════════ */
+    .app-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 900px;
+      padding: 1rem 1.5rem 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 0.25rem;
+    }
+
+    h1 {
+      font-size: 2.75rem;
+      font-weight: 900;
+      letter-spacing: -0.05em;
+      background: linear-gradient(135deg, #fff 30%, #a855f7 70%, #fbbf24 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.25));
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #9ca3af;
+      font-weight: 400;
+    }
+
+    /* Main glass card */
+    .glass-card {
+      width: 100%;
+      max-width: 700px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      padding: 2.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Navbar styling */
+    .btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      color: #d1d5db;
+      padding: 0.6rem 1.2rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--primary-neon);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .btn.active {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(251, 191, 36, 0.15));
+      border-color: var(--accent-neon);
+      color: #e0f2fe;
+      box-shadow: 0 0 15px rgba(251, 191, 36, 0.2);
+    }
+
+    /* Start Game button */
+    .action-btn {
+      background: linear-gradient(135deg, #a855f7, #fbbf24);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      color: #020617;
+      font-size: 1.25rem;
+      font-weight: 900;
+      padding: 1rem 3rem;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 8px 25px rgba(168, 85, 247, 0.35);
+    }
+
+    .action-btn:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 12px 35px rgba(168, 85, 247, 0.5);
+    }
+
+    /* Options buttons */
+    .options-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      width: 100%;
+      max-width: 550px;
+    }
+
+    .option-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1.5px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-align: center;
+      color: #e2e8f0;
+      font-size: 1.45rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
+    .option-btn:hover {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: var(--accent-neon);
+      transform: scale(1.03);
+      box-shadow: 0 0 20px rgba(251, 191, 36, 0.25);
+      color: #fff;
+    }
+
+    /* Counter indicator */
+    .loop-counter-box {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.05rem;
+      color: #94a3b8;
+    }
+
+    .counter-value {
+      font-family: 'Orbitron', monospace;
+      font-weight: 700;
+      color: var(--accent-neon);
+      font-size: 1.35rem;
+      text-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+    }
+
+    /* Confused text effects */
+    .shaky-text {
+      animation: shake 0.5s infinite alternate;
+      display: inline-block;
+    }
+
+    @keyframes shake {
+      0% { transform: translate(1px, 1px) rotate(0deg); }
+      10% { transform: translate(-1px, -2px) rotate(-1deg); }
+      20% { transform: translate(-3px, 0px) rotate(1deg); }
+      30% { transform: translate(0px, 2px) rotate(0deg); }
+      40% { transform: translate(1px, -1px) rotate(1deg); }
+      50% { transform: translate(-1px, 2px) rotate(-1deg); }
+      60% { transform: translate(-3px, 1px) rotate(0deg); }
+      70% { transform: translate(2px, 1px) rotate(-1deg); }
+      80% { transform: translate(-1px, -1px) rotate(1deg); }
+      90% { transform: translate(2px, 2px) rotate(0deg); }
+      100% { transform: translate(1px, -2px) rotate(-1deg); }
+    }
+
+    .warning-panel {
+      background: rgba(244, 63, 94, 0.08);
+      border: 1px solid rgba(244, 63, 94, 0.25);
+      border-radius: 16px;
+      padding: 1rem;
+      text-align: center;
+      color: #f43f5e;
+      font-weight: bold;
+      width: 100%;
+      max-width: 550px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient glowing orbs & grid -->
+  <div class="bg-orbs" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="grid-overlay"></div>
+  </div>
+
+  <!-- Global Navigation Bar -->
+  <nav style="position: relative; z-index: 50; width: 100%; max-width: 900px; padding: 1.5rem 1.5rem 0 1.5rem; display: flex; justify-content: center; margin: 0 auto;">
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; border-radius: 16px; background: rgba(17, 24, 39, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(24px); width: 100%;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 1.25rem;">🎮</span>
+        <span style="font-weight: 900; font-size: 0.9rem; background: linear-gradient(90deg, #38bdf8, #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">קומפלקס משחקים ואפליקציות</span>
+      </div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="index.html" class="btn" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">⚡ מחשבון</a>
+        <a href="minesweeper.html" class="btn" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">💣 שולה מוקשים</a>
+        <a href="sudoku.html" class="btn" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">🧩 סודוקו</a>
+        <a href="detector.html" class="btn" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">🌈 גילוי נטייה</a>
+        <a href="buchris.html" class="btn active" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">🕸️ מלכודת בוכריסים</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="app-container" style="padding-top: 1rem;">
+    <header>
+      <h1>מלכודת בוכריסים 🕸️</h1>
+      <div class="subtitle">השאלון המדעי המוחלט לזיהוי רמת הבוכריס שבך!</div>
+    </header>
+
+    <main class="glass-card" id="game-card">
+      
+      <!-- Screen 1: Start -->
+      <div id="screen-start" style="display: flex; flex-direction: column; align-items: center; gap: 1.5rem; width: 100%;">
+        <h2 style="font-size: 2.2rem; font-weight: 900; text-align: center; background: linear-gradient(135deg, #fff, #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">גלה, האם אתה בוכריס?</h2>
+        <p style="text-align: center; color: #94a3b8; max-width: 500px; line-height: 1.5;">
+          סריקה אלגוריתמית מתקדמת מבוססת בינה מלאכותית שתענה פעם אחת ולתמיד על השאלה הלאומית. האם את/ה בוכריס?
+        </p>
+        <button class="action-btn" onclick="startTrap()">התחל בדיקה 🚀</button>
+      </div>
+
+      <!-- Screen 2: Infinite Loop Trap -->
+      <div id="screen-trap" style="display: none; flex-direction: column; align-items: center; gap: 1.5rem; width: 100%;">
+        <h2 style="font-size: 2.5rem; font-weight: 900; color: #fff;" class="shaky-text" id="trap-question">מה?</h2>
+        
+        <div class="options-container">
+          <button class="option-btn" onclick="triggerLoop('ah')">אה</button>
+          <button class="option-btn" onclick="triggerLoop('mah')">מה?</button>
+        </div>
+
+        <div class="loop-counter-box">
+          <span>מדד בלבול הבוכריס המצטבר:</span>
+          <span class="counter-value" id="counter-disp">0</span>
+        </div>
+
+        <div class="warning-panel" id="warning-msg">
+          שגיאת סנכרון מערכת! הבוכריס שבך לא מגיב לתוצאות. מנסה לאפס...
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    /* ═══════════════════════════════════════
+       SOUND SYNTHESIZER
+       ═══════════════════════════════════════ */
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playSound(type) {
+      try {
+        initAudio();
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'start') {
+          // Energetic beep
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+          gainNode.gain.setValueAtTime(0.12, now);
+          gainNode.gain.linearRampToValueAtTime(0.01, now + 0.15);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        } else if (type === 'confused') {
+          // A funny slightly slidey detuned question mark sound
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(330, now);
+          osc.frequency.linearRampToValueAtTime(220, now + 0.18);
+          gainNode.gain.setValueAtTime(0.1, now);
+          gainNode.gain.linearRampToValueAtTime(0.001, now + 0.18);
+          
+          osc.start(now);
+          osc.stop(now + 0.18);
+
+          // Add a second detuned oscillator for extra confusion
+          const osc2 = audioCtx.createOscillator();
+          const gain2 = audioCtx.createGain();
+          osc2.connect(gain2);
+          gain2.connect(audioCtx.destination);
+          
+          osc2.type = 'triangle';
+          osc2.frequency.setValueAtTime(325, now);
+          osc2.frequency.linearRampToValueAtTime(215, now + 0.2);
+          gain2.gain.setValueAtTime(0.1, now);
+          gain2.gain.linearRampToValueAtTime(0.001, now + 0.2);
+          
+          osc2.start(now);
+          osc2.stop(now + 0.2);
+        }
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    /* ═══════════════════════════════════════
+       TRAP LOGIC
+       ═══════════════════════════════════════ */
+    let loopCount = 0;
+
+    function startTrap() {
+      playSound('start');
+      document.getElementById('screen-start').style.display = 'none';
+      document.getElementById('screen-trap').style.display = 'flex';
+    }
+
+    function triggerLoop(choice) {
+      loopCount++;
+      playSound('confused');
+      
+      // Update counter UI
+      document.getElementById('counter-disp').textContent = loopCount;
+
+      // Make the question shaky and funnier as the loop continues
+      const qElement = document.getElementById('trap-question');
+      
+      // Funny warnings that show up as they click more and more
+      const warning = document.getElementById('warning-msg');
+      if (loopCount >= 5) {
+        warning.style.display = 'block';
+        warning.textContent = "אזהרה: המערכת קורסת לתוך לולאת 'מה?'. נא לא ללחוץ סתם!";
+      }
+      if (loopCount >= 10) {
+        warning.textContent = "מדד הבוכריס שלך הגיע לרמה קיצונית! אתה פשוט ממשיך לשאול מה?";
+        qElement.style.color = "var(--danger-neon)";
+        qElement.style.fontSize = "3.2rem";
+      }
+      if (loopCount >= 20) {
+        warning.textContent = "אין דרך חזרה. כעת אתה בוכריס רשמי ב-100%. תמשיך ללחוץ 'מה?' לנצח.";
+        qElement.style.textShadow = "0 0 20px var(--danger-neon)";
+      }
+
+      // Add a subtle screen shake effect to the card
+      const card = document.getElementById('game-card');
+      card.style.transform = 'scale(0.98) rotate(0.5deg)';
+      setTimeout(() => {
+        card.style.transform = '';
+      }, 80);
+    }
+  </script>
+</body>
+</html>

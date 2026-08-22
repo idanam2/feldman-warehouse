@@ -1,0 +1,2315 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>מחשבון אנרגיה חלופית | Alternative Energy Calculator</title>
+  <meta name="description" content="מחשבון אנרגיה חלופית לסטודנטים להנדסה – שלב-אחר-שלב עם פרמטרים אישיים." />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Heebo (Hebrew) + Inter (Latin) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Heebo', 'Inter', 'sans-serif'] },
+          colors: {
+            slate: {
+              950: '#020617',
+              900: '#0f172a',
+              800: '#1e293b',
+              700: '#334155',
+              600: '#475569',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    * { font-family: 'Heebo', 'Inter', sans-serif; }
+
+    /* ═══════════════════════════════════════
+       BODY & ANIMATED BACKGROUND
+    ═══════════════════════════════════════ */
+    body {
+      background-color: #020617;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Animated floating energy orbs */
+    .bg-orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(110px);
+      z-index: 0;
+      pointer-events: none;
+      will-change: transform;
+    }
+    .bg-orb-1 {
+      width: 800px; height: 800px;
+      background: radial-gradient(circle, rgba(14,165,233,0.22) 0%, transparent 70%);
+      top: -280px; left: -220px;
+      animation: orbFloat1 20s ease-in-out infinite alternate;
+    }
+    .bg-orb-2 {
+      width: 650px; height: 650px;
+      background: radial-gradient(circle, rgba(16,185,129,0.16) 0%, transparent 70%);
+      bottom: -200px; right: -180px;
+      animation: orbFloat2 26s ease-in-out infinite alternate;
+    }
+    .bg-orb-3 {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(99,102,241,0.14) 0%, transparent 70%);
+      top: 40%; left: 55%;
+      animation: orbFloat3 18s ease-in-out infinite alternate;
+    }
+    .bg-orb-4 {
+      width: 350px; height: 350px;
+      background: radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 70%);
+      top: 60%; left: 10%;
+      animation: orbFloat4 24s ease-in-out infinite alternate;
+    }
+    @keyframes orbFloat1 {
+      from { transform: translate(0,   0)   scale(1.0); }
+      to   { transform: translate(70px, 80px) scale(1.18); }
+    }
+    @keyframes orbFloat2 {
+      from { transform: translate(0,    0)    scale(1.0); }
+      to   { transform: translate(-80px,-60px) scale(1.12); }
+    }
+    @keyframes orbFloat3 {
+      from { transform: translate(-50%,-50%) scale(1.0); opacity: 0.6; }
+      to   { transform: translate(-44%,-58%) scale(1.25); opacity: 1.0; }
+    }
+    @keyframes orbFloat4 {
+      from { transform: translate(0,  0)   scale(1.0); opacity: 0.5; }
+      to   { transform: translate(50px,-40px) scale(1.15); opacity: 0.9; }
+    }
+
+    /* Subtle dot-grid overlay for depth */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 90% 90% at 50% 50%, black 20%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 90% 90% at 50% 50%, black 20%, transparent 100%);
+    }
+
+    /* Ensure all content sits above background layer */
+    header, main { position: relative; z-index: 1; }
+
+    /* ═══════════════════════════════════════
+       FLOATING GLASS CAPSULE (core card)
+    ═══════════════════════════════════════ */
+    .glass {
+      background: rgba(255, 255, 255, 0.035);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      box-shadow:
+        0 0 60px -15px rgba(0, 0, 0, 0.55),
+        0 2px 0 0 rgba(255,255,255,0.06) inset,
+        0 -1px 0 0 rgba(0,0,0,0.4) inset;
+    }
+
+    /* ═══════════════════════════════════════
+       TAB BAR
+    ═══════════════════════════════════════ */
+    .tab-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      color: #475569;
+      transition: all 0.22s cubic-bezier(0.4,0,0.2,1);
+      letter-spacing: 0.01em;
+      position: relative;
+      overflow: hidden;
+    }
+    .tab-btn::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 50%; right: 50%;
+      height: 2px;
+      background: linear-gradient(90deg, #0ea5e9, #4ade80);
+      border-radius: 2px;
+      transition: left 0.3s ease, right 0.3s ease;
+    }
+    .tab-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(56,189,248,0.28);
+      color: #cbd5e1;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+    }
+    .tab-btn.active {
+      background: linear-gradient(145deg, rgba(14,165,233,0.22), rgba(16,185,129,0.12)) !important;
+      border-color: rgba(56,189,248,0.50) !important;
+      color: #e0f2fe !important;
+      font-weight: 700 !important;
+      transform: translateY(-2px);
+      box-shadow:
+        0 0 22px rgba(14,165,233,0.22),
+        0 0 50px rgba(14,165,233,0.07),
+        inset 0 1px 0 rgba(56,189,248,0.18) !important;
+    }
+    .tab-btn.active::after {
+      left: 8%; right: 8%;
+    }
+
+    /* ═══════════════════════════════════════
+       METRIC CARD  (result displays)
+    ═══════════════════════════════════════ */
+    .metric-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), box-shadow 0.25s, border-color 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(56,189,248,0.35), transparent);
+    }
+    .metric-card:hover {
+      transform: translateY(-5px) scale(1.015);
+      box-shadow: 0 24px 55px rgba(0,0,0,0.5);
+      border-color: rgba(56,189,248,0.35);
+    }
+
+    /* ── FLAT HIGH-CONTRAST result values inside metric cards (no glow) ── */
+    .metric-card .text-emerald-400 {
+      color: #22c55e !important;
+      text-shadow: none !important;
+      filter: none !important;
+    }
+    .metric-card .text-sky-400 {
+      color: #38bdf8 !important;
+      text-shadow: none !important;
+      filter: none !important;
+    }
+    .metric-card .text-amber-400 {
+      color: #f59e0b !important;
+      text-shadow: none !important;
+      filter: none !important;
+    }
+
+    /* ═══════════════════════════════════════
+       QUESTION TITLE (h2 inside .fade-in)
+    ═══════════════════════════════════════ */
+    .fade-in > div:first-child h2 {
+      font-size: 1.80rem !important;
+      font-weight: 900 !important;
+      letter-spacing: -0.03em !important;
+      line-height: 1.15 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 0.75rem !important;
+    }
+    /* The text span inside the question h2 gets gradient + glow treatment */
+    .fade-in > div:first-child h2 > span:last-child {
+      background: linear-gradient(135deg, #f0f9ff 0%, #7dd3fc 45%, #6ee7b7 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 18px rgba(56,189,248,0.30));
+    }
+    /* Icon span keeps emoji visible */
+    .fade-in > div:first-child h2 > span:first-child {
+      font-size: 1.75rem !important;
+      -webkit-text-fill-color: initial;
+      filter: none;
+      flex-shrink: 0;
+    }
+
+    /* ═══════════════════════════════════════
+       PARAM CHIPS
+    ═══════════════════════════════════════ */
+    .param-chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      transition: all 0.22s ease;
+    }
+    .param-chip:hover {
+      background: rgba(14, 165, 233, 0.10);
+      border-color: rgba(14, 165, 233, 0.35);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(14,165,233,0.18);
+    }
+
+    /* ═══════════════════════════════════════
+       EXPLANATION STEP BOX
+    ═══════════════════════════════════════ */
+    .explanation-box {
+      background: rgba(2, 6, 23, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-right: 3px solid #0ea5e9;
+    }
+
+    /* ═══════════════════════════════════════
+       SECTION HEADERS
+    ═══════════════════════════════════════ */
+    .section-header {
+      border-right: 4px solid #0ea5e9;
+      padding-right: 14px;
+      margin-top: 1.75rem;
+      margin-bottom: 0.875rem;
+    }
+    .section-header .font-bold {
+      text-shadow: 0 0 20px rgba(14,165,233,0.25);
+    }
+
+    /* ═══════════════════════════════════════
+       WARNING / NOTE BOXES
+    ═══════════════════════════════════════ */
+    .warning-box {
+      background: rgba(245, 158, 11, 0.06);
+      border: 1px solid rgba(245, 158, 11, 0.22);
+      border-right: 4px solid #f59e0b;
+    }
+    .note-box {
+      background: rgba(14, 165, 233, 0.06);
+      border: 1px solid rgba(14, 165, 233, 0.18);
+      border-right: 4px solid #0ea5e9;
+    }
+
+    /* ═══════════════════════════════════════
+       EQUATION BLOCK
+    ═══════════════════════════════════════ */
+    .eq-block {
+      background: rgba(2, 6, 23, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 14px 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      text-align: center;
+    }
+
+    /* ═══════════════════════════════════════
+       STUDENT ID INPUT
+    ═══════════════════════════════════════ */
+    input#studentId {
+      background: rgba(2, 6, 23, 0.70);
+      border: 1.5px solid rgba(255, 255, 255, 0.11);
+      color: white;
+      transition: all 0.3s;
+    }
+    input#studentId:focus {
+      outline: none;
+      border-color: #38bdf8;
+      background: rgba(2, 6, 23, 0.92);
+      box-shadow:
+        0 0 0 3px rgba(56,189,248,0.15),
+        0 0 24px rgba(56,189,248,0.10);
+    }
+    input#studentId::placeholder { color: rgba(255,255,255,0.20); }
+
+    /* ═══════════════════════════════════════
+       SCROLLBAR
+    ═══════════════════════════════════════ */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+    ::-webkit-scrollbar-thumb { background: rgba(56,189,248,0.35); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(56,189,248,0.65); }
+
+    /* ═══════════════════════════════════════
+       SPINNER
+    ═══════════════════════════════════════ */
+    .spinner {
+      width: 20px; height: 20px;
+      border: 2px solid rgba(255,255,255,0.12);
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ═══════════════════════════════════════
+       FADE-IN
+    ═══════════════════════════════════════ */
+    .fade-in { animation: fadeIn 0.5s cubic-bezier(0.4,0,0.2,1); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ═══════════════════════════════════════
+       BLUEPRINT FORMULA
+    ═══════════════════════════════════════ */
+    .blueprint-formula {
+      display: inline-block;
+      background: rgba(2, 6, 23, 0.80);
+      border: 1px solid rgba(56,189,248,0.18);
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.95rem;
+      overflow-x: auto;
+    }
+
+    /* ═══════════════════════════════════════
+       HEADER ACCENT LINE
+    ═══════════════════════════════════════ */
+    .header-accent-line {
+      height: 1px;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(56,189,248,0.6) 25%,
+        rgba(74,222,128,0.6) 75%,
+        transparent 100%);
+    }
+
+    /* ── Glassmorphism card ── */
+    .glass {
+      background: rgba(15, 23, 42, 0.60);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    /* ── Tab buttons ── */
+    .tab-btn {
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      color: #94a3b8;
+      transition: all 0.2s ease;
+      letter-spacing: 0.01em;
+    }
+    .tab-btn:hover {
+      background: rgba(30, 41, 59, 0.75);
+      border-color: rgba(56, 189, 248, 0.25);
+      color: #e2e8f0;
+      transform: translateY(-1px);
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.28), rgba(14, 165, 233, 0.18)) !important;
+      border-color: rgba(56, 189, 248, 0.55) !important;
+      color: #38bdf8 !important;
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.18), inset 0 1px 0 rgba(56,189,248,0.1);
+      transform: translateY(-1px);
+    }
+
+    /* ── Metric card ── */
+    .metric-card {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.07) 0%, rgba(15, 23, 42, 0.6) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+    .metric-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+
+    /* ── Param chip ── */
+    .param-chip {
+      background: rgba(30, 41, 59, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      transition: all 0.2s;
+    }
+    .param-chip:hover {
+      background: rgba(30, 41, 59, 0.9);
+      border-color: rgba(56, 189, 248, 0.25);
+      transform: translateY(-1px);
+    }
+
+    /* ── Explanation / Step box ── */
+    .explanation-box {
+      background: rgba(2, 6, 23, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-right: 3px solid #0ea5e9;
+    }
+
+    /* ── Section header bar ── */
+    .section-header {
+      border-right: 4px solid #0ea5e9;
+      padding-right: 12px;
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    /* ── Warning box ── */
+    .warning-box {
+      background: rgba(245, 158, 11, 0.06);
+      border: 1px solid rgba(245, 158, 11, 0.22);
+      border-right: 4px solid #f59e0b;
+    }
+
+    /* ── Note / Info box ── */
+    .note-box {
+      background: rgba(14, 165, 233, 0.06);
+      border: 1px solid rgba(14, 165, 233, 0.18);
+      border-right: 4px solid #0ea5e9;
+    }
+
+    /* ── Equation block ── */
+    .eq-block {
+      background: rgba(2, 6, 23, 0.80);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 14px 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      text-align: center;
+    }
+
+    /* ── Student ID input ── */
+    input#studentId {
+      background: rgba(2, 6, 23, 0.65);
+      border: 1.5px solid rgba(255, 255, 255, 0.10);
+      color: white;
+      transition: all 0.3s;
+    }
+    input#studentId:focus {
+      outline: none;
+      border-color: #38bdf8;
+      background: rgba(2, 6, 23, 0.90);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+    }
+    input#studentId::placeholder { color: rgba(255,255,255,0.22); }
+
+    /* ── Custom scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+    ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.28); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.5); }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 20px; height: 20px;
+      border: 2px solid rgba(255,255,255,0.15);
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Fade-in ── */
+    .fade-in { animation: fadeIn 0.45s cubic-bezier(0.4,0,0.2,1); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── Inputs metadata panel ── */
+    .params-panel {
+      background: rgba(2, 6, 23, 0.50);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 18px 22px;
+    }
+
+    /* ── Input wrapper with clear button ── */
+    .input-wrapper {
+      position: relative;
+      flex: 1;
+    }
+    .input-wrapper .clear-btn {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255,255,255,0.08);
+      border: none;
+      color: rgba(255,255,255,0.3);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: all 0.2s;
+      line-height: 1;
+    }
+    .input-wrapper .clear-btn:hover {
+      background: rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.7);
+    }
+    .input-wrapper .clear-btn.visible { display: flex; }
+
+    /* ── Enter hint ── */
+    .enter-hint {
+      position: absolute;
+      left: 48px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      color: rgba(255,255,255,0.15);
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .enter-hint.hidden { opacity: 0; }
+
+    /* ── Dismiss button for errors ── */
+    .error-dismiss {
+      margin-right: auto;
+      background: none;
+      border: none;
+      color: rgba(239,68,68,0.5);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0 4px;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+    .error-dismiss:hover { color: rgba(239,68,68,0.9); }
+
+    /* ── Error slide animation ── */
+    .error-enter { animation: errorSlide 0.3s cubic-bezier(0.4,0,0.2,1); }
+    @keyframes errorSlide {
+      from { opacity: 0; transform: translateY(-8px); max-height: 0; }
+      to { opacity: 1; transform: translateY(0); max-height: 80px; }
+    }
+    .error-exit { animation: errorFade 0.25s ease forwards; }
+    @keyframes errorFade {
+      to { opacity: 0; transform: translateY(-6px); max-height: 0; padding: 0; margin: 0; }
+    }
+
+    /* ── Skeleton loading ── */
+    .skeleton {
+      background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s ease-in-out infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ── Footer ── */
+    .footer-glow {
+      background: linear-gradient(90deg, transparent 0%, rgba(56,189,248,0.15) 50%, transparent 100%);
+      height: 1px;
+    }
+
+    /* ── Quick stats bar ── */
+    .stat-pill {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      transition: all 0.2s;
+    }
+    .stat-pill:hover {
+      background: rgba(14,165,233,0.08);
+      border-color: rgba(56,189,248,0.2);
+    }
+
+    /* ── Respect reduced motion ── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* ── Blueprint formula spans ── */
+    .blueprint-formula {
+      display: inline-block;
+      background: rgba(2, 6, 23, 0.80);
+      border: 1px solid rgba(56, 189, 248, 0.15);
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-family: 'Courier New', 'Courier', monospace;
+      font-size: 0.95rem;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body class="text-slate-100">
+
+  <!-- ═══════════════════════════════════════
+       ANIMATED BACKGROUND LAYERS
+  ═══════════════════════════════════════ -->
+  <div aria-hidden="true">
+    <!-- Energy flow orbs -->
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
+    <div class="bg-orb bg-orb-4"></div>
+    <!-- Dot grid overlay -->
+    <div class="bg-grid"></div>
+  </div>
+
+  <!-- Global Navigation Bar -->
+  <nav class="relative z-50 w-full max-w-6xl mx-auto px-6 pt-6 flex justify-center">
+    <div class="flex items-center justify-between p-3 rounded-2xl glass w-full" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(18px);">
+      <div class="flex items-center gap-2">
+        <span class="text-xl">🎮</span>
+        <span class="font-black text-sm tracking-wide" style="background: linear-gradient(90deg, #38bdf8, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">קומפלקס משחקים ואפליקציות</span>
+      </div>
+      <div class="flex gap-2">
+        <a href="index.html" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition active" style="text-decoration: none;">⚡ מחשבון אנרגיה</a>
+        <a href="minesweeper.html" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition" style="text-decoration: none;">💣 שולה המוקשים</a>
+        <a href="sudoku.html" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition" style="text-decoration: none;">🧩 סודוקו ניאון</a>
+        <a href="detector.html" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition" style="text-decoration: none;">🌈 גילוי נטייה</a>
+        <a href="buchris.html" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition" style="text-decoration: none;">🕸️ מלכודת בוכריסים</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════
+       HEADER
+  ═══════════════════════════════════════ -->
+  <header class="relative overflow-hidden">
+    <!-- Header accent line at very top -->
+    <div class="header-accent-line"></div>
+    <!-- Darker header fill -->
+    <div class="absolute inset-0" style="background: linear-gradient(180deg, rgba(2,6,23,0.95) 0%, rgba(2,6,23,0.70) 100%); backdrop-filter: blur(4px);"></div>
+    <!-- Bottom border glow -->
+    <div class="absolute bottom-0 left-0 right-0" style="height: 1px; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);"></div>
+
+    <div class="relative z-10 max-w-6xl mx-auto px-6 py-16 text-center">
+
+      <!-- Badge pill -->
+      <div class="inline-flex items-center gap-2.5 rounded-full px-5 py-2 text-sm mb-6 font-semibold tracking-wide"
+           style="background: rgba(14,165,233,0.10); border: 1px solid rgba(14,165,233,0.28); color: #7dd3fc;">
+        <span>🎓</span>
+        <span>הנדסת אנרגיה חלופית &ndash; מטלה אישית</span>
+      </div>
+
+      <!-- Main title with gradient -->
+      <h1 class="text-5xl md:text-6xl font-black mb-5 tracking-tighter leading-none"
+          style="background: linear-gradient(135deg, #f8fafc 0%, #7dd3fc 50%, #6ee7b7 100%);
+                 -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+                 filter: drop-shadow(0 0 30px rgba(56,189,248,0.30));">
+        מחשבון אנרגיה חלופית
+      </h1>
+
+      <!-- Sub-headline -->
+      <p class="text-slate-400 text-lg max-w-xl mx-auto leading-relaxed">
+        הזן את תעודת הזהות שלך לחילוץ הפרמטרים האישיים ופתרון מלא, שלב-אחר-שלב, ללא תלות שרת
+      </p>
+
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+  ═══════════════════════════════════════ -->
+  <main class="max-w-6xl mx-auto px-4 py-10 space-y-6">
+
+    <!-- ── INPUT CARD ── -->
+    <div class="glass rounded-[28px] p-8 fade-in">
+      <label for="studentId" class="flex items-center gap-2.5 text-slate-300 font-semibold text-sm mb-4">
+        <span style="background: rgba(14,165,233,0.15); border: 1px solid rgba(14,165,233,0.28);"
+              class="w-7 h-7 rounded-lg flex items-center justify-center text-base flex-shrink-0">🔑</span>
+        <span>הקלד תעודת זהות לחילוץ נתונים וחישוב</span>
+      </label>
+
+      <div class="flex flex-col sm:flex-row gap-3">
+        <div class="input-wrapper">
+          <input
+            id="studentId"
+            type="text"
+            inputmode="numeric"
+            placeholder="לדוגמה: 206228645"
+            class="flex-1 rounded-2xl px-6 py-4 text-lg font-mono w-full"
+            style="padding-left: 80px;"
+            maxlength="15"
+            autocomplete="off"
+            enterkeyhint="go"
+            aria-label="תעודת זהות"
+          />
+          <span class="enter-hint" id="enterHint">↵ Enter</span>
+          <button class="clear-btn" id="clearBtn" aria-label="נקה" tabindex="-1">✕</button>
+        </div>
+        <button
+          id="calcBtn"
+          onclick="handleCalculate()"
+          class="flex items-center justify-center gap-2.5 font-bold rounded-2xl px-9 py-4 text-base active:scale-95 select-none"
+          style="background: linear-gradient(135deg, #0ea5e9, #0369a1);
+                 border: 1px solid rgba(56,189,248,0.35);
+                 box-shadow: 0 0 28px rgba(14,165,233,0.30), 0 4px 15px rgba(0,0,0,0.35);
+                 color: #fff;
+                 transition: box-shadow 0.22s ease, transform 0.15s ease;"
+          onmouseover="this.style.boxShadow='0 0 45px rgba(14,165,233,0.55), 0 8px 25px rgba(0,0,0,0.4)'; this.style.transform='translateY(-2px)';"
+          onmouseout="this.style.boxShadow='0 0 28px rgba(14,165,233,0.30), 0 4px 15px rgba(0,0,0,0.35)'; this.style.transform='';">
+          <span id="btnIcon">🚀</span>
+          <span id="btnText">טען נתונים וחשב</span>
+        </button>
+      </div>
+
+      <div id="errorMsgContainer" class="mt-4 hidden" role="alert">
+        <div class="error-enter flex items-center gap-3 rounded-xl px-5 py-3"
+             style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);">
+          <span class="text-red-400 flex-shrink-0">⚠️</span>
+          <p id="errorMsg" class="text-red-400 text-sm font-medium flex-1"></p>
+          <button class="error-dismiss" id="errorDismiss" aria-label="סגור">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STUDENT PARAMS CARD ── -->
+    <div id="paramsCard" class="glass rounded-[28px] p-8 hidden fade-in">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+             style="background: linear-gradient(135deg, rgba(14,165,233,0.20), rgba(16,185,129,0.12));
+                    border: 1px solid rgba(56,189,248,0.30);
+                    box-shadow: 0 0 18px rgba(14,165,233,0.15);">📋</div>
+        <h2 class="font-black text-lg tracking-tight"
+            style="background: linear-gradient(135deg, #f0f9ff, #7dd3fc);
+                   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+          הפרמטרים האישיים שלך למטלה
+        </h2>
+        <span id="studentIdDisplay" class="font-mono text-xs font-bold mr-auto px-3 py-1 rounded-full"
+              style="background: rgba(14,165,233,0.12); border: 1px solid rgba(56,189,248,0.30);
+                     color: #7dd3fc;"></span>
+      </div>
+      <div id="paramsGrid" class="flex flex-wrap gap-3"></div>
+    </div>
+
+    <!-- ── QUICK STATS BAR ── -->
+    <div id="statsBar" class="hidden flex flex-wrap gap-2 fade-in">
+      <div class="stat-pill rounded-xl px-4 py-2.5 flex items-center gap-2 text-xs text-slate-400">
+        <span>📝</span>
+        <span><span id="statQuestions" class="text-white font-semibold">6</span> שאלות</span>
+      </div>
+      <div class="stat-pill rounded-xl px-4 py-2.5 flex items-center gap-2 text-xs text-slate-400">
+        <span>🎓</span>
+        <span>ת.ז: <span id="statStudentId" class="text-white font-semibold font-mono" dir="ltr"></span></span>
+      </div>
+      <div class="stat-pill rounded-xl px-4 py-2.5 flex items-center gap-2 text-xs text-slate-400">
+        <span>⚡</span>
+        <span><span id="statCompleted" class="text-emerald-400 font-semibold">0</span>/<span id="statTotal" class="text-white font-semibold">6</span> נצפו</span>
+      </div>
+    </div>
+
+    <!-- ── SOLUTIONS CARD ── -->
+    <div id="solutionsCard" class="hidden fade-in">
+
+      <!-- Tab navigation bar -->
+      <div id="tabBar"
+           class="flex gap-2 mb-5 p-2.5 rounded-[22px] overflow-x-auto"
+           style="background: rgba(2,6,23,0.60);
+                  border: 1px solid rgba(255,255,255,0.07);
+                  backdrop-filter: blur(20px);
+                  -webkit-backdrop-filter: blur(20px);
+                  -webkit-overflow-scrolling: touch;">
+        <!-- injected by JS -->
+      </div>
+
+      <!-- Tab content panel – floating glass capsule -->
+      <div id="tabContent"
+           class="glass rounded-[28px] p-8 md:p-10">
+        <!-- injected by JS -->
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════
+       FOOTER
+  ═══════════════════════════════════════ -->
+  <footer class="relative mt-16">
+    <div class="footer-glow"></div>
+    <div class="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-600 text-xs">
+      <div class="flex items-center gap-3">
+        <span class="text-slate-500 font-semibold tracking-wide">מחשבון אנרגיה חלופית</span>
+        <span class="text-slate-700">|</span>
+        <span>מטלה אישית להנדסת אנרגיה חלופית</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span>מופעל ע״י JavaScript · Tailwind CSS</span>
+        <span id="yearSpan"></span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============================================================
+       JAVASCRIPT ENGINE
+  ============================================================= -->
+  <script>
+  // ─────────────────────────────────────────────
+  // 1. STUDENT DATABASE
+  // ─────────────────────────────────────────────
+  const STUDENT_DB = [
+    {"id":"206228645","H":30,"U":8.0,"D":50,"U1":5,"U2":25,"h":7.0,"m_dot":50,"T_g":200,"T_c":25,"T1":4,"T2":25,"eta":80},
+    {"id":"318270238","H":35,"U":9.0,"D":51,"U1":6,"U2":23,"h":7.8,"m_dot":52,"T_g":210,"T_c":28,"T1":5,"T2":24,"eta":94},
+    {"id":"207953985","H":40,"U":10.0,"D":47,"U1":7,"U2":22,"h":8.9,"m_dot":54,"T_g":245,"T_c":34,"T1":6,"T2":27,"eta":85},
+    {"id":"326020211","H":45,"U":11.0,"D":49,"U1":4,"U2":26,"h":9.0,"m_dot":56,"T_g":215,"T_c":40,"T1":7,"T2":25,"eta":88},
+    {"id":"208428052","H":50,"U":7.0,"D":38,"U1":5,"U2":27,"h":7.0,"m_dot":58,"T_g":195,"T_c":35,"T1":8,"T2":23,"eta":92},
+    {"id":"207495540","H":55,"U":12.0,"D":53,"U1":2,"U2":21,"h":8.5,"m_dot":60,"T_g":205,"T_c":29,"T1":7,"T2":22,"eta":82},
+    {"id":"318764404","H":60,"U":7.5,"D":48,"us1":3,"U2":22,"h":7.9,"m_dot":62,"T_g":185,"T_c":33,"T1":8,"T2":26,"eta":79},
+    {"id":"207904335","H":65,"U":9.5,"D":52,"U1":4,"U2":23,"h":8.6,"m_dot":64,"T_g":225,"T_c":28,"T1":10,"T2":26,"eta":86},
+    {"id":"208059931","H":70,"U":10.5,"D":46,"U1":6,"U2":27,"h":9.0,"m_dot":66,"T_g":220,"T_c":22,"T1":12,"T2":23,"eta":83},
+    {"id":"209489517","H":80,"U":8.5,"D":38,"U1":5,"U2":18,"h":10.5,"m_dot":50,"T_g":200,"T_c":42,"T1":5,"T2":23,"eta":81},
+    {"id":"209166503","H":90,"U":9.5,"D":47,"U1":6,"U2":19,"h":7.4,"m_dot":52,"T_g":220,"T_c":22,"T1":7,"T2":24,"eta":93},
+    {"id":"209408426","H":70,"U":10.5,"D":51,"U1":4,"U2":21,"h":8.9,"m_dot":63,"T_g":230,"T_c":25,"T1":9,"T2":25,"eta":90},
+    {"id":"313167090","H":80,"U":7.5,"D":49,"U1":7,"U2":26,"h":9.2,"m_dot":55,"T_g":215,"T_c":33,"T1":8,"T2":22,"eta":88},
+    {"id":"322768888","H":60,"U":9.0,"D":39,"U1":5,"U2":29,"h":7.6,"m_dot":59,"T_g":195,"T_c":37,"T1":10,"T2":25,"eta":79},
+    {"id":"207845769","H":85,"U":11.0,"D":41,"U1":6,"U2":24,"h":8.4,"m_dot":63,"T_g":200,"T_c":36,"T1":7,"T2":27,"eta":86}
+  ];
+
+  // ─────────────────────────────────────────────
+  // 2. STABLE THERMODYNAMIC ACCURATE CONSTANTS & METADATA
+  // ─────────────────────────────────────────────
+  const GAMMA_1_625 = 0.89464;
+
+  const PARAM_META = {
+    H: { label: 'גובה רוטור H', unit: "מ'" },
+    U: { label: 'מהירות רוח U', unit: "מ'/ש'" },
+    D: { label: 'קוטר רוטור D', unit: "מ'" },
+    U1: { label: 'מהירות כניסה U₁', unit: "מ'/ש'" },
+    U2: { label: 'מהירות עצירה U₂', unit: "מ'/ש'" },
+    h: { label: 'עומד h', unit: "מ'" },
+    m_dot: { label: 'ספיקה ṁ', unit: "ק\"ג/ש'" },
+    T_g: { label: 'טמפ׳ מקור גיאותרמי T_g', unit: '°C' },
+    T_c: { label: 'טמפ׳ מעבה גיאותרמי T_c', unit: '°C' },
+    T1: { label: 'טמפ׳ מעבה T₁ (קרה)', unit: '°C' },
+    T2: { label: 'טמפ׳ מאייד T₂ (חמה)', unit: '°C' },
+    eta: { label: 'נצילות 𝜂', unit: '%' }
+  };
+
+  // Instructor's specific Saturated Water Table B.1.1 Look-Up Table
+  const WATER_LUT = [
+    { T: 20,  P: 2.339,  h_f: 83.94,   h_g: 2537.4, s_f: 0.2966, s_g: 8.6661 },
+    { T: 25,  P: 3.169,  h_f: 104.87,  h_g: 2546.5, s_f: 0.3673, s_g: 8.5567 },
+    { T: 30,  P: 4.246,  h_f: 125.77,  h_g: 2555.6, s_f: 0.4369, s_g: 8.4520 },
+    { T: 100, P: 101.33, h_f: 419.17,  h_g: 2675.6, s_f: 1.3072, s_g: 7.3541 },
+    { T: 150, P: 476.16, h_f: 632.18,  h_g: 2745.4, s_f: 1.8417, s_g: 6.8355 },
+    { T: 200, P: 1554.9, h_f: 852.26,  h_g: 2792.0, s_f: 2.3305, s_g: 6.4278 },
+    { T: 240, P: 3347.8, h_f: 1037.62, h_g: 2803.0, s_f: 2.7020, s_g: 6.1420 },
+    { T: 245, P: 3652.3, h_f: 1061.50, h_g: 2802.1, s_f: 2.7477, s_g: 6.1070 }
+  ];
+
+  // Instructor's specific R-134a Saturation Data Array
+  const R134A_LUT = [
+    { T: 5,  P: 350.9, h_f: 206.75, h_g: 401.32, s_f: 1.0243, s_g: 1.7239, v_f: 0.000795 },
+    { T: 10, P: 415.8, h_f: 213.58, h_g: 404.23, s_f: 1.0485, s_g: 1.7218, v_f: 0.000792 },
+    { T: 20, P: 572.8, h_f: 227.49, h_g: 409.84, s_f: 1.0963, s_g: 1.7183, v_f: 0.000816 },
+    { T: 25, P: 666.3, h_f: 234.59, h_g: 412.51, s_f: 1.1201, s_g: 1.7168, v_f: 0.000826 },
+    { T: 30, P: 771.0, h_f: 241.79, h_g: 415.08, s_f: 1.1437, s_g: 1.7153, v_f: 0.000836 }
+  ];
+
+  // ─────────────────────────────────────────────
+  // 3. LOGIC ENGINES (WATER + R-134a INTERPOLATOR)
+  // ─────────────────────────────────────────────
+
+  // --- Saturated Water Table B.1.1 Linear Interpolator ---
+  function interpolateWater(T) {
+    const lut = WATER_LUT;
+    
+    // Choose appropriate bracket (allow extrapolation outside 20-245)
+    let low, high;
+    if (T < lut[0].T) {
+      low = lut[0];
+      high = lut[1];
+    } else if (T > lut[lut.length - 1].T) {
+      low = lut[lut.length - 2];
+      high = lut[lut.length - 1];
+    } else {
+      // Find matching bracket
+      let idx = 0;
+      for (let i = 0; i < lut.length - 1; i++) {
+        if (T >= lut[i].T && T <= lut[i+1].T) {
+          idx = i;
+          break;
+        }
+      }
+      low = lut[idx];
+      high = lut[idx + 1];
+    }
+    
+    const factor = (T - low.T) / (high.T - low.T);
+    
+    return {
+      T: T,
+      P: low.P + factor * (high.P - low.P),
+      h_f: low.h_f + factor * (high.h_f - low.h_f),
+      h_g: low.h_g + factor * (high.h_g - low.h_g),
+      s_f: low.s_f + factor * (high.s_f - low.s_f),
+      s_g: low.s_g + factor * (high.s_g - low.s_g)
+    };
+  }
+
+  // --- R-134a Linear Interpolator based on Instructor's Lookup Table ---
+  function interpolateR134a(T) {
+    const lut = R134A_LUT;
+    
+    // Choose appropriate bracket (allow extrapolation outside 5-30)
+    let low, high;
+    if (T < lut[0].T) {
+      low = lut[0];
+      high = lut[1];
+    } else if (T > lut[lut.length - 1].T) {
+      low = lut[lut.length - 2];
+      high = lut[lut.length - 1];
+    } else {
+      // Find matching bracket
+      let idx = 0;
+      for (let i = 0; i < lut.length - 1; i++) {
+        if (T >= lut[i].T && T <= lut[i+1].T) {
+          idx = i;
+          break;
+        }
+      }
+      low = lut[idx];
+      high = lut[idx + 1];
+    }
+    
+    const factor = (T - low.T) / (high.T - low.T);
+    
+    return {
+      T: T,
+      P: low.P + factor * (high.P - low.P),
+      h_f: low.h_f + factor * (high.h_f - low.h_f),
+      h_g: low.h_g + factor * (high.h_g - low.h_g),
+      s_f: low.s_f + factor * (high.s_f - low.s_f),
+      s_g: low.s_g + factor * (high.s_g - low.s_g),
+      v_f: low.v_f + factor * (high.v_f - low.v_f)
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // 4. QUESTION SOLVERS
+  // ─────────────────────────────────────────────
+
+  function solveQ1(H, studentId) {
+    const z_r = 10, U_zr = 6.5, D = 60, rho = 1.165, alpha = 1/7, z_0 = 0.1;
+    const U_A = U_zr * Math.pow(H / z_r, alpha);
+    const U_B = U_zr * (Math.log(H / z_0) / Math.log(z_r / z_0));
+    const R = D / 2, A = Math.PI * R * R;
+    const a_C = 1/3;
+    const T_C = 0.5 * rho * A * U_B**2 * 4 * a_C * (1 - a_C);
+    const T_D = 0.5 * rho * A * U_B**2;
+    const Cp_max = 16/27;
+    const P_max = Cp_max * 0.5 * rho * A * U_B**3;
+    const C_T = 8/9;
+    const lambda = Cp_max / C_T;
+    const Omega = (lambda * U_B) / R;
+    const Q = P_max / Omega;
+    return {
+      metrics: [
+        { label: 'מהירות טורבולנטית <span dir="ltr" class="inline-block">(U_A)</span>', value: `<span dir="ltr" class="inline-block text-sky-400">${U_A.toFixed(3)} מ'/ש'</span>` },
+        { label: 'מהירות לוגריתמית <span dir="ltr" class="inline-block">(U_B)</span>', value: `<span dir="ltr" class="inline-block text-sky-400">${U_B.toFixed(3)} מ'/ש'</span>` },
+        { label: 'דחף בהספק מקסימלי <span dir="ltr" class="inline-block">(T_C)</span>', value: `<span dir="ltr" class="inline-block text-emerald-400">${Math.round(T_C).toLocaleString()} N</span>` },
+        { label: 'דחף מקסימלי <span dir="ltr" class="inline-block">(T_D)</span>',        value: `<span dir="ltr" class="inline-block text-amber-400">${Math.round(T_D).toLocaleString()} N</span>` },
+        { label: 'הספק מקסימלי <span dir="ltr" class="inline-block">(P_max)</span>',      value: `<span dir="ltr" class="inline-block text-sky-400">${(P_max/1000).toFixed(2)} kW</span>` },
+        { label: 'מומנט בהספק מקסימלי <span dir="ltr" class="inline-block">(Q)</span>',   value: `<span dir="ltr" class="inline-block text-amber-400">${Math.round(Q).toLocaleString()} N·m</span>` },
+      ],
+      steps: buildQ1Steps(H, U_A, U_B, A, T_C, T_D, P_max, rho, Omega, Q, D)
+    };
+  }
+
+  function buildQ1Steps(H, U_A, U_B, A, T_C, T_D, P_max, rho, Omega, Q, D) {
+    return `
+<div class="space-y-5 text-slate-300 leading-relaxed text-sm">
+
+  <div class="section-header"><span class="font-bold text-white text-base">א. פרופיל טורבולנטי</span></div>
+  <p>
+    לפי חוק החזקה עבור פרופיל טורבולנטי עם מעריך חזקה 
+    <span dir="ltr" class="inline-block font-mono text-amber-400 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800 font-semibold">alpha = 1/7</span>, 
+    מהירות הרוח בגובה הרוטור 
+    <span dir="ltr" class="inline-block font-mono text-emerald-400 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800 font-semibold">H = ${H}</span> מטרים מחושבת על-ידי המשוואה:
+  </p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      U(H) = U(z_r) · (H / z_r)<sup>&alpha;</sup>
+    </span>
+  </div>
+
+  <p>נציב את הנתונים ומהירות הייחוס:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      U(${H}) = 6.5 · (${H} / 10)<sup>1/7</sup> = ${U_A.toFixed(3)} מ'/ש'
+    </span>
+  </div>
+
+  <p>
+    מהירות הרוח המתקבלת היא: 
+    <span dir="ltr" class="inline-block text-sky-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${U_A.toFixed(3)} מ'/ש'</span>.
+  </p>
+
+  <div class="section-header mt-4"><span class="font-bold text-white text-base">ב. פרופיל לוגריתמי (חספוס פני שטח <span dir="ltr" class="inline-block font-mono text-amber-400 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800 font-semibold">z_0 = 0.1</span> מטר)</span></div>
+  <p>במודל פרופיל הרוח הלוגריתמי המשוואה היא:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      U(H) = U(z_r) · [ ln(H / z_0) / ln(z_r / z_0) ]
+    </span>
+  </div>
+
+  <p>הצבת גובה הרוטור מניבה:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      U(${H}) = 6.5 · [ ln(${H} / 0.1) / ln(10 / 0.1) ] = ${U_B.toFixed(3)} מ'/ש'
+    </span>
+  </div>
+
+  <p>
+    מהירות הרוח המתקבלת מהפרופיל הלוגריתמי היא: 
+    <span dir="ltr" class="inline-block text-sky-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${U_B.toFixed(3)} מ'/ש'</span>.
+  </p>
+  <div class="note-box rounded-lg p-3 text-sky-300 text-sm mt-2">
+    📌 מהירות רוח זו, 
+    <span dir="ltr" class="inline-block font-semibold text-emerald-400 font-mono">${U_B.toFixed(3)} מ'/ש'</span>, 
+    תשמש כבסיס לחישובי הכוחות וההספק בסעיפים הבאים.
+  </div>
+
+  <div class="section-header mt-4"><span class="font-bold text-white text-base">ג. כוח דחף בהספק מקסימלי (חסם בץ, <span dir="ltr" class="inline-block font-mono text-amber-400 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800 font-semibold">a = 1/3</span>)</span></div>
+  <p>
+    עבור קוטר רוטור של 60 מטרים (רדיוס 
+    <span dir="ltr" class="inline-block font-mono text-emerald-300 bg-slate-900 px-2 py-0.5 rounded border border-slate-800/80 font-semibold">R = 30</span> מטרים), שטח דיסקת הרוטור מחושב על-ידי:
+  </p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      A = &pi; · R<sup>2</sup> = &pi; · 30<sup>2</sup> = ${A.toFixed(2)} מ'²
+    </span>
+  </div>
+
+  <p>
+    שטח הדיסקה הכללי הוא: 
+    <span dir="ltr" class="inline-block text-emerald-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${A.toFixed(2)} מ'²</span>.
+  </p>
+  <p>נוסחת כוח הדחף לפי תיאוריית זרימת התנע במצב של הספק מקסימלי:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      T_C = 0.5 · &rho; · A · U<sup>2</sup> · 4 · a · (1 - a)
+    </span>
+  </div>
+
+  <p>נציב את מהירות הרוח, צפיפות האוויר ומקדם ההפרעה האופטימלי:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-amber-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      T_C = 0.5 · 1.165 · ${A.toFixed(2)} · (${U_B.toFixed(3)})<sup>2</sup> · (8 / 9) = ${Math.round(T_C).toLocaleString()} N
+    </span>
+  </div>
+
+  <p>
+    כוח הדחף המתקבל בהספק מקסימלי הוא: 
+    <span dir="ltr" class="inline-block text-emerald-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${Math.round(T_C).toLocaleString()} N</span>.
+  </p>
+
+  <div class="section-header mt-4"><span class="font-bold text-white text-base">ד. דחף מקסימלי (<span dir="ltr" class="inline-block font-mono text-amber-400 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800 font-semibold">a = 0.5</span>)</span></div>
+  <p>כוח הדחף המקסימלי התיאורטי מתקבל כאשר הטורבינה עוצרת לחלוטין את הזרימה:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      T_max = 0.5 · &rho; · A · U<sup>2</sup>
+    </span>
+  </div>
+
+  <p>נציב את הערכים המוכרים:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-amber-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      T_max = 0.5 · 1.165 · ${A.toFixed(2)} · (${U_B.toFixed(3)})<sup>2</sup> = ${Math.round(T_D).toLocaleString()} N
+    </span>
+  </div>
+
+  <p>
+    כוח הדחף המקסימלי המתקבל הוא: 
+    <span dir="ltr" class="inline-block text-amber-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${Math.round(T_D).toLocaleString()} N</span>.
+  </p>
+
+  <div class="section-header mt-4"><span class="font-bold text-white text-base">ה. הספק מקסימלי ומומנט</span></div>
+  <p>ההספק המקסימלי התיאורטי לפי מקדם בץ המקסימלי:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      P_max = (16 / 27) · 0.5 · 1.165 · ${A.toFixed(2)} · (${U_B.toFixed(3)})<sup>3</sup> = ${Math.round(P_max).toLocaleString()} W
+    </span>
+  </div>
+
+  <p>נשתמש בחסם בץ התאורטי כדי למצוא את המהירות הזוויתית והמומנט האידיאלי.</p>
+  <p>מקדם הדחף התאורטי (<span dir="ltr" class="inline-block font-mono text-emerald-300 bg-slate-900 px-1 py-0.5 rounded border border-slate-800">C_T = 8/9</span>). יחס המהירויות האופטימלי (Tip-Speed Ratio) מחושב כך:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      &lambda; = C_p / C_T = (16/27) / (8/9) = 2/3
+    </span>
+  </div>
+
+  <p>נחשב את המהירות הזוויתית (&#937;) של הרוטור:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      &Omega; = (&lambda; · U) / (D / 2) = ((2/3) · ${U_B.toFixed(3)}) / ${D/2} = ${Omega.toFixed(4)} rad/s
+    </span>
+  </div>
+
+  <p>מומנט הרוטור בהספק מקסימלי הוא יחס ההספק למהירות הזוויתית:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      Q = P_max / &Omega; = ${Math.round(P_max).toLocaleString()} / ${Omega.toFixed(4)} = ${Math.round(Q).toLocaleString()} N·m
+    </span>
+  </div>
+
+  <p>
+    המומנט המתקבל הוא: 
+    <span dir="ltr" class="inline-block text-sky-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${Math.round(Q).toLocaleString()} N·m</span>.
+  </p>
+</div>`;
+  }
+
+  function solveQ2(U, studentId) {
+    const k = 1.6, c = U, N = 8760;
+    const gamma_val = GAMMA_1_625; // Hardcoded Constant
+    const U_mean = c * gamma_val;
+    const cdf = v => 1 - Math.exp(-Math.pow(v / c, k));
+    const F_75 = cdf(7.5), F_65 = cdf(6.5);
+    const P_interval = F_75 - F_65;
+    const hours_interval = P_interval * N;
+    const P_above_16 = Math.exp(-Math.pow(16 / c, k));
+    const hours_above_16 = P_above_16 * N;
+    return {
+      metrics: [
+        { label: 'מהירות ממוצעת <span dir="ltr" class="inline-block">(Ū)</span>', value: `<span dir="ltr" class="inline-block text-sky-400">${U_mean.toFixed(3)} מ'/ש'</span>` },
+        { label: '<span dir="ltr" class="inline-block">שעות/שנה (6.5–7.5 מ\'/ש\')</span>', value: `<span dir="ltr" class="inline-block text-emerald-400">${hours_interval.toFixed(1)} שעות</span>` },
+        { label: '<span dir="ltr" class="inline-block">שעות/שנה (> 16 מ\'/ש\')</span>',     value: `<span dir="ltr" class="inline-block text-amber-400">${hours_above_16.toFixed(1)} שעות</span>` },
+      ],
+      steps: buildQ2Steps(U, k, c, N, gamma_val, U_mean, F_75, F_65, P_interval, hours_interval, P_above_16, hours_above_16)
+    };
+  }
+
+  function buildQ2Steps(U, k, c, N, gamma_val, U_mean, F_75, F_65, P_interval, hours_interval, P_above_16, hours_above_16) {
+    return `
+<div class="space-y-5 text-slate-300 leading-relaxed text-sm">
+
+  <div class="section-header"><span class="font-bold text-white text-base">א. מהירות רוח ממוצעת – התפלגות וייבול (Weibull)</span></div>
+  <p>
+    בהינתן פרמטר קנה המידה 
+    <span dir="ltr" class="inline-block font-mono text-emerald-300 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800 font-semibold">c = U = ${U}</span> מ'/ש' ופרמטר הצורה 
+    <span dir="ltr" class="inline-block font-mono text-emerald-300 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800 font-semibold">k = 1.6</span>, המהירות הממוצעת מחושבת על-ידי המשוואה:
+  </p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      Ū = c · &Gamma;(1 + 1/k) = c · &Gamma;(1.625)
+    </span>
+  </div>
+
+  <p>
+    נציב את הפרמטרים ואת קבוע פונקציית הגמא המדויק מהמטלה 
+    <span dir="ltr" class="inline-block font-mono text-amber-400 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800 font-semibold">&Gamma;(1.625) = 0.89464</span>:
+  </p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      Ū = ${U} · 0.89464 = ${U_mean.toFixed(3)} מ'/ש'
+    </span>
+  </div>
+
+  <p>
+    המהירות הממוצעת המחושבת היא: 
+    <span dir="ltr" class="inline-block text-sky-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${U_mean.toFixed(3)} מ'/ש'</span>.
+  </p>
+
+  <div class="section-header mt-4"><span class="font-bold text-white text-base">ב. מספר השעות בשנה שבהן מהירות הרוח היא בין 6.5 ל-7.5 מ'/ש'</span></div>
+  <p>פונקציית ההתפלגות המצטברת (CDF) עבור התפלגות וייבול מוגדרת כ:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      F(U) = 1 - e<sup>-(U / c)<sup>k</sup></sup>
+    </span>
+  </div>
+
+  <p>נחשב את הסתברות הגבול העליון והתחתון בנפרד:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      F(7.5) = 1 - e<sup>-(7.5 / ${U})<sup>1.6</sup></sup> = ${F_75.toFixed(4)}
+    </span>
+  </div>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      F(6.5) = 1 - e<sup>-(6.5 / ${U})<sup>1.6</sup></sup> = ${F_65.toFixed(4)}
+    </span>
+  </div>
+
+  <p>ההסתברות שמהירות הרוח תימצא בטווח זה מחושבת על-ידי הפרש ההסתברויות:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      P = F(7.5) - F(6.5) = ${F_75.toFixed(4)} - ${F_65.toFixed(4)} = ${P_interval.toFixed(4)}
+    </span>
+  </div>
+
+  <p>
+    אחוז הזמן הוא: 
+    <span dir="ltr" class="inline-block text-emerald-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${(P_interval*100).toFixed(2)}%</span>.
+  </p>
+  <p>מספר השעות השנתי הכולל מחושב במכפלת אחוז ההסתברות במספר השעות השנתי (8,760 שעות):</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-amber-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      שעות = P · 8760 = ${P_interval.toFixed(4)} · 8760 = ${hours_interval.toFixed(1)} שעות בשנה
+    </span>
+  </div>
+
+  <p>
+    זמן הפעילות בטווח זה הוא: 
+    <span dir="ltr" class="inline-block text-emerald-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${hours_interval.toFixed(1)} שעות בשנה</span>.
+  </p>
+
+  <div class="section-header mt-4"><span class="font-bold text-white text-base">ג. מספר השעות בשנה שבהן מהירות הרוח היא מעל 16 מ'/ש'</span></div>
+  <p>ההסתברות שמהירות הרוח תהיה גבוהה מ-16 מ'/ש' מחושבת על-ידי משוואת ההסתברות המשלימה:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      P(U > 16) = e<sup>-(16 / c)<sup>k</sup></sup>
+    </span>
+  </div>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      P(U > 16) = e<sup>-(16 / ${U})<sup>1.6</sup></sup> = ${P_above_16.toFixed(4)}
+    </span>
+  </div>
+
+  <p>
+    ההסתברות המצטברת היא 
+    <span dir="ltr" class="inline-block text-emerald-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${(P_above_16*100).toFixed(2)}%</span>, ומספר השעות השנתי מחושב כך:
+  </p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-amber-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      שעות = P(U > 16) · 8760 = ${P_above_16.toFixed(4)} · 8760 = ${hours_above_16.toFixed(1)} שעות בשנה
+    </span>
+  </div>
+
+  <p>
+    זמן פעילות הטורבינה ברוחות מעל 16 מ'/ש' הוא: 
+    <span dir="ltr" class="inline-block text-amber-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${hours_above_16.toFixed(1)} שעות בשנה</span>.
+  </p>
+</div>`;
+  }
+
+  function solveQ3(U1, U2, studentId) {
+    const U_bar = 10.0, U_R = 13.0, P_rated = 1000.0, N = 8760;
+    const rayleighCdf = v => 1 - Math.exp(-(Math.PI / 4) * Math.pow(v / U_bar, 2));
+    const P_below_U1 = rayleighCdf(U1);
+    const hours_below_U1 = P_below_U1 * N;
+    const P_above_U2 = Math.exp(-(Math.PI / 4) * Math.pow(U2 / U_bar, 2));
+    const hours_above_U2 = P_above_U2 * N;
+    const P_above_UR = Math.exp(-(Math.PI / 4) * Math.pow(U_R / U_bar, 2));
+    const P_rated_range = P_above_UR - P_above_U2;
+    const hours_rated = P_rated_range * N;
+    const energy_rated = P_rated * hours_rated;
+    return {
+      metrics: [
+        { label: `שעות מתחת ל-<span dir="ltr" class="inline-block">U₁ (${U1} מ'/ש')</span>`,  value: `<span dir="ltr" class="inline-block text-sky-400">${hours_below_U1.toFixed(1)} שעות</span>` },
+        { label: `שעות השבתה <span dir="ltr" class="inline-block">(> ${U2} מ'/ש')</span>`,       value: `<span dir="ltr" class="inline-block text-amber-400">${hours_above_U2.toFixed(1)} שעות</span>` },
+        { label: 'ייצור שנתי בהספק נקוב',             value: `<span dir="ltr" class="inline-block text-emerald-400">${Math.round(energy_rated).toLocaleString()} kWh</span>` },
+      ],
+      steps: buildQ3Steps(U1, U2, U_bar, U_R, P_rated, N, P_below_U1, hours_below_U1, P_above_U2, hours_above_U2, P_above_UR, P_rated_range, hours_rated, energy_rated)
+    };
+  }
+
+  function buildQ3Steps(U1, U2, U_bar, U_R, P_rated, N, P_below_U1, hours_below_U1, P_above_U2, hours_above_U2, P_above_UR, P_rated_range, hours_rated, energy_rated) {
+    return `
+<div class="space-y-5 text-slate-300 leading-relaxed text-sm">
+  <div class="note-box rounded-lg p-3 text-sky-300 text-sm">
+    📌 <strong>נתוני האתר הקבועים:</strong> מהירות ממוצעת שנתית 
+    <span dir="ltr" class="inline-block font-mono text-emerald-300 bg-slate-900 px-2 py-0.5 rounded border border-slate-800/80 font-semibold">Ubar = 10</span> מ'/ש', מהירות נקובה 
+    <span dir="ltr" class="inline-block font-mono text-emerald-300 bg-slate-900 px-2 py-0.5 rounded border border-slate-800/80 font-semibold">U_R = 13</span> מ'/ש', הספק נקוב 
+    <span dir="ltr" class="inline-block font-mono text-emerald-300 bg-slate-900 px-2 py-0.5 rounded border border-slate-800/80 font-semibold">P_rated = 1,000</span> קילו-וואט (1 מגה-וואט). קוטר הרוטור מלוח הנתונים אינו משפיע בשאלה זו.
+  </div>
+
+  <div class="section-header"><span class="font-bold text-white text-base">א. שעות בשנה שבהן מהירות הרוח נמוכה ממהירות הכניסה (<span dir="ltr" class="inline-block font-mono text-emerald-300 bg-slate-900 px-2 py-0.5 rounded border border-slate-800/80 font-semibold">U < ${U1}</span> מ'/ש')</span></div>
+  <p>פונקציית ההתפלגות המצטברת (CDF) של התפלגות ריילי מוגדרת כ:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      F(U) = 1 - e<sup>-(&pi; / 4) · (U / Ū)<sup>2</sup></sup>
+    </span>
+  </div>
+
+  <p>נציב את המהירות הממוצעת באתר ואת מהירות הכניסה האישית שלך:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      P(U < ${U1}) = 1 - e<sup>-(&pi; / 4) · (${U1} / 10)<sup>2</sup></sup> = ${P_below_U1.toFixed(4)}
+    </span>
+  </div>
+
+  <p>
+    ההסתברות שמהירות הרוח תהיה נמוכה ממהירות הכניסה היא 
+    <span dir="ltr" class="inline-block text-sky-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${(P_below_U1*100).toFixed(2)}%</span>.
+  </p>
+  <p>מספר שעות ההשבתה עקב מהירות רוח נמוכה בשנה:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-amber-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      שעות = P · 8760 = ${P_below_U1.toFixed(4)} · 8760 = ${hours_below_U1.toFixed(1)} שעות בשנה
+    </span>
+  </div>
+
+  <p>
+    זמן ההשבתה הוא: 
+    <span dir="ltr" class="inline-block text-emerald-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${hours_below_U1.toFixed(1)} שעות בשנה</span>.
+  </p>
+
+  <div class="section-header mt-4"><span class="font-bold text-white text-base">ב. שעות השבתה בשנה עקב רוח חזקה ממהירות העצירה (<span dir="ltr" class="inline-block font-mono text-emerald-300 bg-slate-900 px-2.5 py-0.5 rounded border border-slate-800/80 font-semibold">U > ${U2}</span> מ'/ש')</span></div>
+  <p>ההסתברות שמהירות הרוח תעלה על מהירות העצירה מחושבת על-ידי:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      P(U > U<sub>2</sub>) = e<sup>-(&pi; / 4) · (U<sub>2</sub> / Ū)<sup>2</sup></sup>
+    </span>
+  </div>
+
+  <p>נציב את הנתונים האישיים:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      P(U > ${U2}) = e<sup>-(&pi; / 4) · (${U2} / 10)<sup>2</sup></sup> = ${P_above_U2.toFixed(4)}
+    </span>
+  </div>
+
+  <p>
+    ההסתברות המצטברת היא 
+    <span dir="ltr" class="inline-block text-sky-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${(P_above_U2*100).toFixed(2)}%</span>.
+  </p>
+  <p>מספר שעות ההשבתה עקב סערה בשנה:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-amber-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      שעות = P · 8760 = ${P_above_U2.toFixed(4)} · 8760 = ${hours_above_U2.toFixed(1)} שעות בשנה
+    </span>
+  </div>
+
+  <p>
+    זמן ההשבתה הכולל עקב רוחות חזקות הוא: 
+    <span dir="ltr" class="inline-block text-amber-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${hours_above_U2.toFixed(1)} שעות בשנה</span>.
+  </p>
+
+  <div class="section-header mt-4"><span class="font-bold text-white text-base">ג. תפוקת אנרגיה שנתית בהספק נקוב</span></div>
+  <p>
+    הטורבינה תפעל בהספק הנקוב המלא שלה של 1,000 קילו-וואט כאשר מהירות הרוח נמצאת בין המהירות הנקובה 
+    <span dir="ltr" class="inline-block font-mono text-emerald-300 bg-slate-900 px-2.5 py-0.5 rounded border border-slate-800/80 font-semibold">U_R = 13</span> מ'/ש' לבין מהירות העצירה האישית שלך:
+  </p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      P(13 &le; U &le; U<sub>2</sub>) = P(U > 13) - P(U > U<sub>2</sub>)
+    </span>
+  </div>
+
+  <p>נחשב את הסתברות הגבול התחתון (מהירות נקובה ומעלה):</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      P(U > 13) = e<sup>-(&pi; / 4) · (13 / 10)<sup>2</sup></sup> = ${P_above_UR.toFixed(4)}
+    </span>
+  </div>
+
+  <p>נחשב את הסתברות הטווח המבוקש:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      P(13 &le; U &le; ${U2}) = ${P_above_UR.toFixed(4)} - ${P_above_U2.toFixed(4)} = ${P_rated_range.toFixed(4)}
+    </span>
+  </div>
+
+  <p>מספר שעות הפעולה בהספק הנקוב בשנה:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-amber-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      שעות = P · 8760 = ${P_rated_range.toFixed(4)} · 8760 = ${hours_rated.toFixed(1)} שעות
+    </span>
+  </div>
+
+  <p>
+    זמן ייצור החשמל בהספק נקוב הוא: 
+    <span dir="ltr" class="inline-block text-emerald-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${hours_rated.toFixed(1)} שעות בשנה</span>.
+  </p>
+  <p>תפוקת האנרגיה השנתית מחושבת על-ידי מכפלת ההספק בזמן:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      E = P_rated · שעות = 1000 · ${hours_rated.toFixed(1)} = ${Math.round(energy_rated).toLocaleString()} kWh
+    </span>
+  </div>
+
+  <p>
+    תפוקת האנרגיה השנתית הכוללת היא: 
+    <span dir="ltr" class="inline-block text-emerald-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${Math.round(energy_rated).toLocaleString()} kWh</span>.
+  </p>
+</div>`;
+  }
+
+  function solveQ4(h, studentId) {
+    const P = 1200000; // Target Power = 1.2 MW
+    const H = 6.6; // Tidal Range
+    const rho = 1025; // Sea water density
+    const g = 9.81;
+    const T = 45000; // Time period
+
+    const A = (P * T) / (rho * g * Math.pow(H, 2));
+    const L = A / h;
+
+    return {
+      metrics: [
+        { label: 'שטח הבריכה הנדרש <span dir="ltr" class="inline-block">(A)</span>', value: `<span dir="ltr" class="inline-block text-sky-400">${Math.round(A).toLocaleString()} m²</span>` },
+        { label: 'אורך הסכר המחושב <span dir="ltr" class="inline-block">(L)</span>', value: `<span dir="ltr" class="inline-block text-emerald-400">${Math.round(L).toLocaleString()} m</span>` }
+      ],
+      steps: buildQ4Steps(h, P, H, rho, g, T, A, L)
+    };
+  }
+
+  function buildQ4Steps(h, P, H, rho, g, T, A, L) {
+    return `
+<div class="space-y-5 text-slate-300 leading-relaxed text-sm">
+  <div class="note-box rounded-lg p-3 text-sky-300 text-sm">
+    🌊 <strong>תחנת כוח גאות ושפל (Tidal Barrage):</strong> 
+    ההספק הנדרש מהתחנה הוא <span dir="ltr" class="inline-block text-emerald-400 font-mono font-semibold">P = 1.2 MW</span>, בטווח זמן <span dir="ltr" class="inline-block text-emerald-400 font-mono font-semibold">T = 45,000 s</span>.
+    טווח הגאות הוא <span dir="ltr" class="inline-block text-emerald-400 font-mono font-semibold">H = 6.6 m</span>, צפיפות מי הים <span dir="ltr" class="inline-block text-emerald-400 font-mono font-semibold">&rho; = 1025 kg/m³</span>, 
+    ותאוצת הכובד <span dir="ltr" class="inline-block text-emerald-400 font-mono font-semibold">g = 9.81 m/s²</span>.
+  </div>
+
+  <div class="section-header mt-4"><span class="font-bold text-white text-base">א. חישוב שטח הבריכה הנדרש</span></div>
+  <p>השטח הנדרש מחושב מתוך העבודה המופקת בריקון הבריכה המומרת להספק נדרש על פני זמן מחזור הגאות:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      A = (P · T) / (&rho; · g · H<sup>2</sup>)
+    </span>
+  </div>
+
+  <p>נציב את הנתונים:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      A = (${P} · ${T}) / (1025 · 9.81 · 6.6<sup>2</sup>) = ${Math.round(A).toLocaleString()} m²
+    </span>
+  </div>
+
+  <p>
+    שטח הבריכה הנדרש הוא: 
+    <span dir="ltr" class="inline-block text-sky-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${Math.round(A).toLocaleString()} m²</span>.
+  </p>
+
+  <div class="section-header mt-4"><span class="font-bold text-white text-base">ב. אורך הסכר המינימלי</span></div>
+  <p>אורך הסכר (L) מחושב על ידי חלוקת שטח הבריכה המחושב בגובה הסכר (h) המיועד לכל סטודנט (<span dir="ltr" class="inline-block text-amber-400 font-mono">h = ${h} מ'</span>):</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      L = A / h = ${Math.round(A).toLocaleString()} / ${h} = ${Math.round(L).toLocaleString()} m
+    </span>
+  </div>
+
+  <p>
+    אורך הסכר המחושב הוא: 
+    <span dir="ltr" class="inline-block text-emerald-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${Math.round(L).toLocaleString()} m</span>.
+  </p>
+</div>`;
+  }
+
+  function solveQ5(m_dot, T_g, T_c, eta_percent, studentId) {
+    // BUG FIX: Strictly use hardcoded question constant for Question 5 turbine efficiency (80%) for ALL students
+    const turbineEffQ5 = 0.80;
+    const eta = turbineEffQ5;
+    
+    const T_flash = (T_g + T_c) / 2;
+
+    const steam1 = interpolateWater(T_g);
+    const h_1 = steam1.h_f;
+
+    const steam2 = interpolateWater(T_flash);
+    const h_2 = h_1;
+    const h_fg2 = steam2.h_g - steam2.h_f;
+    const x = (h_2 - steam2.h_f) / h_fg2;
+    const m_dot_steam = m_dot * x;
+
+    const h_3 = steam2.h_g;
+    const s_3 = steam2.s_g;
+
+    const steamC = interpolateWater(T_c);
+    const s_f4 = steamC.s_f;
+    const s_fg4 = steamC.s_g - s_f4;
+    const h_fg4 = steamC.h_g - steamC.h_f;
+
+    const x_4_ideal = (s_3 - s_f4) / s_fg4;
+    const h_4_ideal = steamC.h_f + x_4_ideal * h_fg4;
+    const W_ideal = h_3 - h_4_ideal;
+    const W_actual = W_ideal * eta;
+    const Power_kW = m_dot_steam * W_actual;
+    const Power_MW = Power_kW / 1000;
+
+    return {
+      metrics: [
+        { label: 'טמפרטורת פלאש', value: `<span dir="ltr" class="inline-block text-sky-400">${T_flash.toFixed(1)} °C</span>` },
+        { label: 'איכות קיטור <span dir="ltr" class="inline-block">(x)</span>', value: `<span dir="ltr" class="inline-block text-amber-400">${(x*100).toFixed(1)}%</span>` },
+        { label: 'ספיקת קיטור', value: `<span dir="ltr" class="inline-block text-sky-400">${m_dot_steam.toFixed(2)} ק"ג/ש'</span>` },
+        { label: 'הספק מופק', value: `<span dir="ltr" class="inline-block text-emerald-400">${Power_MW.toFixed(2)} MW</span>` },
+      ],
+      steps: buildQ5Steps(m_dot, T_g, T_c, eta, T_flash, h_1, steam2, h_fg2, x, m_dot_steam, h_3, s_3, steamC, s_f4, s_fg4, h_fg4, x_4_ideal, h_4_ideal, W_ideal, W_actual, Power_kW, Power_MW)
+    };
+  }
+
+  function buildQ5Steps(m_dot, T_g, T_c, eta, T_flash, h_1, steam2, h_fg2, x, m_dot_steam, h_3, s_3, steamC, s_f4, s_fg4, h_fg4, x_4_ideal, h_4_ideal, W_ideal, W_actual, Power_kW, Power_MW) {
+    return `
+<div class="space-y-5 text-slate-300 leading-relaxed text-sm">
+
+  <div class="section-header"><span class="font-bold text-white text-base">שלב 1: טמפרטורת פלאש אופטימלית</span></div>
+  <p>
+    במערכת תחנת כוח גיאותרמית מסוג דרגה אחת 
+    <span dir="ltr" class="inline-block">(Single-Flash)</span>, ההספק המקסימלי מתקבל בקירוב כאשר טמפרטורת הפלאש נקבעת במרכז שבין טמפרטורת המקור לטמפרטורת המעבה:
+  </p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      T_flash = (T_g + T_c) / 2
+    </span>
+  </div>
+
+  <p>נציב את הנתונים האישיים שלך:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      T_flash = (${T_g} + ${T_c}) / 2 = ${T_flash.toFixed(1)} °C
+    </span>
+  </div>
+
+  <p>
+    טמפרטורת הפלאש האופטימלית שמתקבלת היא: 
+    <span dir="ltr" class="inline-block text-sky-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${T_flash.toFixed(1)} °C</span>.
+  </p>
+
+  <div class="section-header mt-4"><span class="font-bold text-white text-base">שלב 2: תכונות הקיטור הרווי וחישוב איכות הפלאש</span></div>
+  <p>
+    מתוך טבלת מים רוויים (טבלה B.1.1) באינטרפולציה ליניארית עבור טמפרטורת המקור 
+    <span dir="ltr" class="inline-block font-mono text-emerald-300 bg-slate-900 px-2.5 py-0.5 rounded border border-slate-800/80 font-semibold">T_g = ${T_g} °C</span>, נקבל את האנתלפיה של נוזל רווי בכניסה למערכת:
+  </p>
+  <p>
+    <span dir="ltr" class="inline-block text-white font-bold">h_1 = h_f = ${h_1.toFixed(2)} kJ/kg</span>.
+  </p>
+  <p>
+    תהליך המחנק בשסתומי המערכת הוא איזואנתלפי, ולכן:
+  </p>
+  <p>
+    <span dir="ltr" class="inline-block text-white font-bold">h_2 = h_1 = ${h_1.toFixed(2)} kJ/kg</span>.
+  </p>
+  <p>
+    בטמפרטורת הפלאש האופטימלית המחושבת 
+    <span dir="ltr" class="inline-block font-mono text-emerald-300 bg-slate-900 px-2.5 py-0.5 rounded border border-slate-800/80 font-semibold">T_flash = ${T_flash.toFixed(1)} °C</span>, נקבל את תכונות הרוויה באינטרפולציה:
+  </p>
+  <p>
+    אנתלפיית נוזל רווי: 
+    <span dir="ltr" class="inline-block text-white font-bold">h_f = ${steam2.h_f.toFixed(2)} kJ/kg</span>, 
+    ואנתלפיית האידוי: 
+    <span dir="ltr" class="inline-block text-white font-bold">h_fg = ${h_fg2.toFixed(2)} kJ/kg</span>.
+  </p>
+  <p>איכות הקיטור הנוצר במיכל הפלאש (x) מחושבת על-ידי:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      x = (h_2 - h_f) / h_fg
+    </span>
+  </div>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      x = (${h_1.toFixed(2)} - ${steam2.h_f.toFixed(2)}) / ${h_fg2.toFixed(2)} = ${x.toFixed(4)}
+    </span>
+  </div>
+
+  <p>
+    איכות הקיטור היא: 
+    <span dir="ltr" class="inline-block text-emerald-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${(x*100).toFixed(2)}%</span>.
+  </p>
+  <p>ספיקת הקיטור המופרדת ומועברת לטורבינה מתוך ספיקת הנוזל הכללית (ṁ = ${m_dot} ק"ג/ש'):</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      ṁ_steam = ṁ_total · x = ${m_dot} · ${x.toFixed(4)} = ${m_dot_steam.toFixed(2)} ק"ג/ש'
+    </span>
+  </div>
+
+  <p>
+    ספיקת הקיטור היא: 
+    <span dir="ltr" class="inline-block text-sky-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${m_dot_steam.toFixed(2)} ק"ג/ש'</span>.
+  </p>
+
+  <div class="section-header mt-4"><span class="font-bold text-white text-base">שלב 3: ניתוח הטורבינה והספק מופק סגולי</span></div>
+  <p>
+    הקיטור נכנס לטורבינה כקיטור רווי יבש בטמפרטורת הפלאש. תכונות הכניסה הן:
+  </p>
+  <p>
+    אנתלפיית כניסה: 
+    <span dir="ltr" class="inline-block text-white font-bold">h_3 = h_g = ${h_3.toFixed(2)} kJ/kg</span>, 
+    אנטרופיית כניסה: 
+    <span dir="ltr" class="inline-block text-white font-bold">s_3 = s_g = ${s_3.toFixed(4)} kJ/kg·K</span>.
+  </p>
+  <p>
+    בטמפרטורת המעבה 
+    <span dir="ltr" class="inline-block font-mono text-emerald-300 bg-slate-900 px-2.5 py-0.5 rounded border border-slate-800/80 font-semibold">T_c = ${T_c} °C</span>, תכונות הרוויה באינטרפולציה הן:
+  </p>
+  <p>
+    אנטרופיית נוזל רווי: 
+    <span dir="ltr" class="inline-block text-white font-bold">s_f = ${s_f4.toFixed(4)} kJ/kg·K</span>, 
+    אנטרופיית אידוי: 
+    <span dir="ltr" class="inline-block text-white font-bold">s_fg = ${s_fg4.toFixed(4)} kJ/kg·K</span>, 
+    ואנתלפיית אידוי: 
+    <span dir="ltr" class="inline-block text-white font-bold">h_fg = ${h_fg4.toFixed(2)} kJ/kg</span>.
+  </p>
+  <p>נחשב את איכות הקיטור התאורטית (האיזנטרופית) ביציאה מהטורבינה:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      x_4_ideal = (s_3 - s_f) / s_fg
+    </span>
+  </div>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      x_4_ideal = (${s_3.toFixed(4)} - ${s_f4.toFixed(4)}) / ${s_fg4.toFixed(4)} = ${x_4_ideal.toFixed(4)}
+    </span>
+  </div>
+
+  <p>האנתלפיה האיזנטרופית ביציאה מהטורבינה מחושבת על-ידי:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      h_4_ideal = h_f + x_4_ideal · h_fg = ${steamC.h_f.toFixed(2)} + ${x_4_ideal.toFixed(4)} · ${h_fg4.toFixed(2)} = ${h_4_ideal.toFixed(2)} kJ/kg
+    </span>
+  </div>
+
+  <p>עבודה סגולית אידאלית של הטורבינה:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      W_ideal = h_3 - h_4_ideal = ${h_3.toFixed(2)} - ${h_4_ideal.toFixed(2)} = ${W_ideal.toFixed(2)} kJ/kg
+    </span>
+  </div>
+
+  <p>בהתחשב בנצילות האיזנטרופית הקבועה של הטורבינה לשאלה זו (${(eta*100).toFixed(0)}%):</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-amber-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      W_actual = W_ideal · &eta; = ${W_ideal.toFixed(2)} · ${eta.toFixed(2)} = ${W_actual.toFixed(2)} kJ/kg
+    </span>
+  </div>
+
+  <p>
+    העבודה הממשית של הטורבינה היא: 
+    <span dir="ltr" class="inline-block text-sky-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${W_actual.toFixed(2)} kJ/kg</span>.
+  </p>
+
+  <div class="section-header mt-4"><span class="font-bold text-white text-base">שלב 4: הספק חשמלי כולל מופק</span></div>
+  <p>ההספק הכולל מחושב כמכפלת ספיקת הקיטור בעבודה הממשית של הטורבינה:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      P = ṁ_steam · W_actual = ${m_dot_steam.toFixed(2)} · ${W_actual.toFixed(2)} = ${Power_kW.toFixed(2)} kW
+    </span>
+  </div>
+
+  <p>נמיר את התוצאה למגה-וואט:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      P_MW = P / 1000 = ${Power_MW.toFixed(2)} MW
+    </span>
+  </div>
+
+  <p>
+    ההספק הגיאותרמי המופק הסופי הוא: 
+    <span dir="ltr" class="inline-block text-emerald-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${Power_MW.toFixed(2)} MW</span>.
+  </p>
+</div>`;
+  }
+
+  function solveQ6(T1, T2, eta_percent, studentId) {
+    const eta_t = eta_percent > 1 ? eta_percent / 100 : eta_percent;
+    const T_C = T1 + 273.15, T_H = T2 + 273.15;
+    const eta_carnot = 1 - T_C / T_H;
+
+    const s1 = interpolateR134a(T1);
+    const s3 = interpolateR134a(T2);
+    const P1 = s1.P, h1 = s1.h_f, v1 = s1.v_f;
+    const P2 = s3.P, h3 = s3.h_g, s3_ent = s3.s_g;
+
+    const w_p = v1 * (P2 - P1);
+    const h2 = h1 + w_p;
+
+    const s4 = interpolateR134a(T1);
+    const s_fg4 = s4.s_g - s4.s_f;
+    const h_fg4 = s4.h_g - s4.h_f;
+    const x_4s = (s3_ent - s4.s_f) / s_fg4;
+    const h_4s = s4.h_f + x_4s * h_fg4;
+
+    const w_t = eta_t * (h3 - h_4s);
+    const w_net = w_t - w_p;
+    const q_in = h3 - h2;
+    const eta_th = w_net / q_in;
+    const q_in_required_kW = 500 / eta_th;
+    const q_in_required_MW = q_in_required_kW / 1000;
+
+    return {
+      metrics: [
+        { label: 'נצילות קרנו', value: `<span dir="ltr" class="inline-block text-sky-400">${(eta_carnot*100).toFixed(2)}%</span>` },
+        { label: 'נצילות תרמית <span dir="ltr" class="inline-block">Rankine</span>', value: `<span dir="ltr" class="inline-block text-emerald-400">${(eta_th*100).toFixed(2)}%</span>` },
+        { label: 'חום נדרש ל-<span dir="ltr" class="inline-block">0.5 MW</span>', value: `<span dir="ltr" class="inline-block text-amber-400">${q_in_required_MW.toFixed(3)} MW</span>` },
+      ],
+      steps: buildQ6Steps(T1, T2, eta_t, T_C, T_H, eta_carnot, P1, h1, v1, P2, h3, s3_ent, w_p, h2, s4, s_fg4, h_fg4, x_4s, h_4s, w_t, w_net, q_in, eta_th, q_in_required_kW, q_in_required_MW, s1, s3)
+    };
+  }
+
+  function buildQ6Steps(T1, T2, eta_t, T_C, T_H, eta_carnot, P1, h1, v1, P2, h3, s3_ent, w_p, h2, s4, s_fg4, h_fg4, x_4s, h_4s, w_t, w_net, q_in, eta_th, q_in_required_kW, q_in_required_MW, s1, s3) {
+    return `
+<div class="space-y-5 text-slate-300 leading-relaxed text-sm">
+  <div class="note-box rounded-lg p-3 text-sky-300 text-sm">
+    🌊 <strong>מערכת OTEC (המרת אנרגיה תרמית מהאוקיינוס):</strong> המערכת מנצלת את הפרש הטמפרטורות שבין מים חמים מפני השטח 
+    <span dir="ltr" class="inline-block text-emerald-400 font-mono font-semibold bg-slate-900 px-1 py-0.5 rounded">(T_2 = ${T2} °C)</span> למים קרים מעומק הים 
+    <span dir="ltr" class="inline-block text-emerald-400 font-mono font-semibold bg-slate-900 px-1 py-0.5 rounded">(T_1 = ${T1} °C)</span> לייצור כוח במחזור רנקין עם זורם R-134a.
+  </div>
+
+  <div class="section-header mt-6"><span class="font-bold text-white text-base">📊 טבלת תכונות תרמודינמיות (R-134a) לפרמטרים האישיים שלך</span></div>
+  <p>להלן הערכים התרמודינמיים הרוויים שחולצו וחושבו במדויק בשיטת אינטרפולציה ליניארית מטבלאות ASHRAE הייחודיות של הקורס עבור טמפרטורות המעבה והמאייד האישיות שלך:</p>
+  
+  <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/70 my-3 shadow-2xl">
+    <table class="w-full text-right border-collapse">
+      <thead>
+        <tr class="bg-slate-900 text-slate-400 border-b border-slate-800">
+          <th class="px-4 py-3 text-xs font-bold text-slate-500 font-mono">#</th>
+          <th class="px-4 py-3 text-sm font-bold">פרמטר תרמודינמי</th>
+          <th class="px-4 py-3 text-sm font-bold text-center">סימול</th>
+          <th class="px-4 py-3 text-sm font-bold text-center">טמפרטורה</th>
+          <th class="px-4 py-3 text-sm font-bold text-left">ערך מחושב</th>
+          <th class="px-4 py-3 text-sm font-bold text-left">יחידות</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800/40 text-slate-300">
+        <tr class="hover:bg-slate-800/10 transition-colors">
+          <td class="px-4 py-2.5 text-xs text-slate-600 font-mono">1</td>
+          <td class="px-4 py-2.5 text-sm font-medium">לחץ רוויה במעבה</td>
+          <td class="px-4 py-2.5 text-sm text-center font-mono text-sky-400">P<sub>1</sub></td>
+          <td class="px-4 py-2.5 text-sm text-center font-mono">${T1}°C</td>
+          <td class="px-4 py-2.5 text-sm text-left font-bold text-emerald-400 font-mono" dir="ltr">${P1.toFixed(2)}</td>
+          <td class="px-4 py-2.5 text-sm text-left text-slate-500 font-mono">kPa</td>
+        </tr>
+        <tr class="hover:bg-slate-800/10 transition-colors">
+          <td class="px-4 py-2.5 text-xs text-slate-600 font-mono">2</td>
+          <td class="px-4 py-2.5 text-sm font-medium">אנתלפיית נוזל רווי במעבה</td>
+          <td class="px-4 py-2.5 text-sm text-center font-mono text-sky-400">h_f1</td>
+          <td class="px-4 py-2.5 text-sm text-center font-mono">${T1}°C</td>
+          <td class="px-4 py-2.5 text-sm text-left font-bold text-emerald-400 font-mono" dir="ltr">${h1.toFixed(2)}</td>
+          <td class="px-4 py-2.5 text-sm text-left text-slate-500 font-mono">kJ/kg</td>
+        </tr>
+        <tr class="hover:bg-slate-800/10 transition-colors">
+          <td class="px-4 py-2.5 text-xs text-slate-600 font-mono">3</td>
+          <td class="px-4 py-2.5 text-sm font-medium">נפח סגולי של נוזל רווי במעבה</td>
+          <td class="px-4 py-2.5 text-sm text-center font-mono text-sky-400">v_f1</td>
+          <td class="px-4 py-2.5 text-sm text-center font-mono">${T1}°C</td>
+          <td class="px-4 py-2.5 text-sm text-left font-bold text-emerald-400 font-mono" dir="ltr">${v1.toFixed(6)}</td>
+          <td class="px-4 py-2.5 text-sm text-left text-slate-500 font-mono">m³/kg</td>
+        </tr>
+        <tr class="hover:bg-slate-800/10 transition-colors">
+          <td class="px-4 py-2.5 text-xs text-slate-600 font-mono">4</td>
+          <td class="px-4 py-2.5 text-sm font-medium">אנטרופיית נוזל רווי במעבה</td>
+          <td class="px-4 py-2.5 text-sm text-center font-mono text-sky-400">s_f1</td>
+          <td class="px-4 py-2.5 text-sm text-center font-mono">${T1}°C</td>
+          <td class="px-4 py-2.5 text-sm text-left font-bold text-emerald-400 font-mono" dir="ltr">${s1.s_f.toFixed(4)}</td>
+          <td class="px-4 py-2.5 text-sm text-left text-slate-500 font-mono">kJ/kg·K</td>
+        </tr>
+        <tr class="hover:bg-slate-800/10 transition-colors">
+          <td class="px-4 py-2.5 text-xs text-slate-600 font-mono">5</td>
+          <td class="px-4 py-2.5 text-sm font-medium">אנטרופיית קיטור רווי במעבה</td>
+          <td class="px-4 py-2.5 text-sm text-center font-mono text-sky-400">s_g1</td>
+          <td class="px-4 py-2.5 text-sm text-center font-mono">${T1}°C</td>
+          <td class="px-4 py-2.5 text-sm text-left font-bold text-emerald-400 font-mono" dir="ltr">${s1.s_g.toFixed(4)}</td>
+          <td class="px-4 py-2.5 text-sm text-left text-slate-500 font-mono">kJ/kg·K</td>
+        </tr>
+        <tr class="hover:bg-slate-800/10 transition-colors">
+          <td class="px-4 py-2.5 text-xs text-slate-600 font-mono">6</td>
+          <td class="px-4 py-2.5 text-sm font-medium">לחץ רוויה במאייד</td>
+          <td class="px-4 py-2.5 text-sm text-center font-mono text-sky-400">P<sub>2</sub></td>
+          <td class="px-4 py-2.5 text-sm text-center font-mono">${T2}°C</td>
+          <td class="px-4 py-2.5 text-sm text-left font-bold text-emerald-400 font-mono" dir="ltr">${P2.toFixed(2)}</td>
+          <td class="px-4 py-2.5 text-sm text-left text-slate-500 font-mono">kPa</td>
+        </tr>
+        <tr class="hover:bg-slate-800/10 transition-colors">
+          <td class="px-4 py-2.5 text-xs text-slate-600 font-mono">7</td>
+          <td class="px-4 py-2.5 text-sm font-medium">אנתלפיית קיטור רווי במאייד</td>
+          <td class="px-4 py-2.5 text-sm text-center font-mono text-sky-400">h_g2 / h<sub>3</sub></td>
+          <td class="px-4 py-2.5 text-sm text-center font-mono">${T2}°C</td>
+          <td class="px-4 py-2.5 text-sm text-left font-bold text-emerald-400 font-mono" dir="ltr">${h3.toFixed(2)}</td>
+          <td class="px-4 py-2.5 text-sm text-left text-slate-500 font-mono">kJ/kg</td>
+        </tr>
+        <tr class="hover:bg-slate-800/10 transition-colors">
+          <td class="px-4 py-2.5 text-xs text-slate-600 font-mono">8</td>
+          <td class="px-4 py-2.5 text-sm font-medium">אנטרופיית קיטור רווי במאייד</td>
+          <td class="px-4 py-2.5 text-sm text-center font-mono text-sky-400">s_g2 / s<sub>3</sub></td>
+          <td class="px-4 py-2.5 text-sm text-center font-mono">${T2}°C</td>
+          <td class="px-4 py-2.5 text-sm text-left font-bold text-emerald-400 font-mono" dir="ltr">${s3_ent.toFixed(4)}</td>
+          <td class="px-4 py-2.5 text-sm text-left text-slate-500 font-mono">kJ/kg·K</td>
+        </tr>
+        <tr class="hover:bg-slate-800/10 transition-colors">
+          <td class="px-4 py-2.5 text-xs text-slate-600 font-mono">9</td>
+          <td class="px-4 py-2.5 text-sm font-medium">אנתלפיית נוזל רווי במאייד</td>
+          <td class="px-4 py-2.5 text-sm text-center font-mono text-sky-400">h_f2</td>
+          <td class="px-4 py-2.5 text-sm text-center font-mono">${T2}°C</td>
+          <td class="px-4 py-2.5 text-sm text-left font-bold text-emerald-400 font-mono" dir="ltr">${s3.h_f.toFixed(2)}</td>
+          <td class="px-4 py-2.5 text-sm text-left text-slate-500 font-mono">kJ/kg</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-header mt-6"><span class="font-bold text-white text-base">א. נצילות קרנו מקסימלית תאורטית</span></div>
+  <p>נמיר תחילה את טמפרטורות המקור והמעבה ליחידות קלווין:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      T_c = T_1 + 273.15 = ${T1} + 273.15 = ${T_C.toFixed(2)} K
+    </span>
+  </div>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      T_h = T_2 + 273.15 = ${T2} + 273.15 = ${T_H.toFixed(2)} K
+    </span>
+  </div>
+
+  <p>נחשב את נצילות קרנו המקסימלית האפשרית עבור מנוע חום הפועל בין גבולות אלו:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      &eta;_carnot = 1 - T_c / T_h = 1 - ${T_C.toFixed(2)} / ${T_H.toFixed(2)} = ${eta_carnot.toFixed(4)}
+    </span>
+  </div>
+
+  <p>
+    נצילות קרנו המקסימלית המתקבלת היא: 
+    <span dir="ltr" class="inline-block text-sky-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${(eta_carnot*100).toFixed(2)}%</span>.
+  </p>
+
+  <div class="section-header mt-6"><span class="font-bold text-white text-base">ב. ניתוח תרמודינמי של מחזור רנקין עם R-134a</span></div>
+  <p>
+    <strong>מצב 1: כניסה למשאבה (נוזל רווי בטמפרטורת המעבה T_1 = ${T1} °C):</strong>
+  </p>
+  <p>
+    לחץ: <span dir="ltr" class="inline-block text-white font-bold">P_1 = ${P1.toFixed(1)} kPa</span>, 
+    אנתלפיה: <span dir="ltr" class="inline-block text-white font-bold">h_1 = ${h1.toFixed(2)} kJ/kg</span>, 
+    נפח סגולי: <span dir="ltr" class="inline-block text-white font-bold">v_1 = ${v1.toFixed(6)} m³/kg</span>.
+  </p>
+  <p>
+    <strong>מצב 3: כניסה לטורבינה (קיטור רווי בטמפרטורת המאייד T_2 = ${T2} °C):</strong>
+  </p>
+  <p>
+    לחץ: <span dir="ltr" class="inline-block text-white font-bold">P_2 = ${P2.toFixed(1)} kPa</span>, 
+    אנתלפיה: <span dir="ltr" class="inline-block text-white font-bold">h_3 = ${h3.toFixed(2)} kJ/kg</span>, 
+    אנטרופיה: <span dir="ltr" class="inline-block text-white font-bold">s_3 = s_g = ${s3_ent.toFixed(4)} kJ/kg·K</span>.
+  </p>
+
+  <div class="section-header mt-3"><span class="font-semibold text-white">1. ניתוח המשאבה:</span></div>
+  <p>העבודה סגולית המושקעת במשאבה מחושבת על-ידי:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      w_p = v_1 · (P_2 - P_1) = ${v1.toFixed(6)} · (${P2.toFixed(1)} - ${P1.toFixed(1)}) = ${w_p.toFixed(3)} kJ/kg
+    </span>
+  </div>
+
+  <p>האנתלפיה ביציאה מהמשאבה:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      h_2 = h_1 + w_p = ${h1.toFixed(2)} + ${w_p.toFixed(3)} = ${h2.toFixed(2)} kJ/kg
+    </span>
+  </div>
+
+  <p>
+    עבודת המשאבה היא: 
+    <span dir="ltr" class="inline-block text-sky-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${w_p.toFixed(3)} kJ/kg</span>, 
+    והאנתלפיה ביציאה היא: 
+    <span dir="ltr" class="inline-block text-sky-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${h2.toFixed(2)} kJ/kg</span>.
+  </p>
+
+  <div class="section-header mt-3"><span class="font-semibold text-white">2. ניתוח הטורבינה (תהליך איזנטרופי):</span></div>
+  <p>
+    ביציאה מהטורבינה בלחץ המעבה (בטמפרטורה T_1 = ${T1} °C), נחלץ את תכונות הרוויה מהטבלה המכוילת:
+  </p>
+  <p>
+    אנטרופיית נוזל רווי: <span dir="ltr" class="inline-block text-white font-bold">s_f = ${s4.s_f.toFixed(4)} kJ/kg·K</span>, 
+    אנטרופיית אידוי: <span dir="ltr" class="inline-block text-white font-bold">s_fg = ${s_fg4.toFixed(4)} kJ/kg·K</span>, 
+    ואנתלפיית אידוי: <span dir="ltr" class="inline-block text-white font-bold">h_fg = ${h_fg4.toFixed(2)} kJ/kg</span>.
+  </p>
+  <p>איכות הקיטור התאורטית (x_4s) מחושבת על-ידי שוויון אנטרופיות (s_4s = s_3):</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      x_4s = (s_3 - s_f) / s_fg = (${s3_ent.toFixed(4)} - ${s4.s_f.toFixed(4)}) / ${s_fg4.toFixed(4)} = ${x_4s.toFixed(4)}
+    </span>
+  </div>
+
+  <p>האנתלפיה האיזנטרופית ביציאה מהטורבינה:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      h_4s = h_f + x_4s · h_fg = ${s4.h_f.toFixed(2)} + ${x_4s.toFixed(4)} · ${h_fg4.toFixed(2)} = ${h_4s.toFixed(2)} kJ/kg
+    </span>
+  </div>
+
+  <p>עבודת הטורבינה הממשית בהתחשב בנצילות האיזנטרופית (${(eta_t*100).toFixed(0)}%):</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-amber-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      w_t = (h_3 - h_4s) · &eta; = (${h3.toFixed(2)} - ${h_4s.toFixed(2)}) · ${eta_t.toFixed(2)} = ${w_t.toFixed(2)} kJ/kg
+    </span>
+  </div>
+
+  <p>
+    עבודת הטורבינה הממשית היא: 
+    <span dir="ltr" class="inline-block text-sky-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${w_t.toFixed(2)} kJ/kg</span>.
+  </p>
+
+  <div class="section-header mt-3"><span class="font-semibold text-white">3. נצילות תרמית של מחזור רנקין:</span></div>
+  <p>העבודה נטו המיוצרת במחזור מחושבת על-ידי:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      w_net = w_t - w_p = ${w_t.toFixed(2)} - ${w_p.toFixed(3)} = ${w_net.toFixed(2)} kJ/kg
+    </span>
+  </div>
+
+  <p>החום המושקע במאייד מחושב על-ידי:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      q_in = h_3 - h_2 = ${h3.toFixed(2)} - ${h2.toFixed(2)} = ${q_in.toFixed(2)} kJ/kg
+    </span>
+  </div>
+
+  <p>הנצילות התרמית של המחזור היא היחס שבין העבודה נטו לחום המושקע:</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-emerald-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      &eta;_th = w_net / q_in = ${w_net.toFixed(2)} / ${q_in.toFixed(2)} = ${eta_th.toFixed(5)}
+    </span>
+  </div>
+
+  <p>
+    הנצילות התרמית הממשית של מחזור OTEC היא: 
+    <span dir="ltr" class="inline-block text-emerald-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${(eta_th*100).toFixed(3)}%</span>.
+  </p>
+
+  <div class="section-header mt-4"><span class="font-bold text-white text-base">ג. קצב החום הנדרש להספק נטו של 0.5 MW</span></div>
+  <p>נמיר את הספק המטרה ליחידות קילו-וואט (500 קילו-וואט):</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-sky-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      Q_in = 500 / &eta;_th = 500 / ${eta_th.toFixed(5)} = ${q_in_required_kW.toFixed(1)} kW
+    </span>
+  </div>
+
+  <p>נמיר את קצב החום הנדרש ליחידות מגה-וואט (MW):</p>
+  
+  <div class="my-4 text-center">
+    <span dir="ltr" class="bg-slate-950 text-amber-400 border border-slate-800/80 px-4 py-2 rounded font-mono inline-block text-base shadow-inner">
+      Q_in_MW = Q_in / 1000 = ${q_in_required_MW.toFixed(3)} MW
+    </span>
+  </div>
+
+  <p>
+    קצב החום הנדרש במאייד תחנת הכוח הוא: 
+    <span dir="ltr" class="inline-block text-amber-400 font-bold bg-slate-950 px-2.5 py-0.5 rounded border border-slate-800/50">${q_in_required_MW.toFixed(3)} MW</span>.
+  </p>
+</div>`;
+  }
+
+  // ─────────────────────────────────────────────
+  // 6. UI RENDERING & EVENT HANDLERS
+  // ─────────────────────────────────────────────
+
+  const TAB_DEFS = [
+    { num: 1, label: '1 – פרופיל רוח',  icon: '💨' },
+    { num: 2, label: '2 – וייבול',      icon: '📊' },
+    { num: 3, label: '3 – ריילי',       icon: '⚡' },
+    { num: 4, label: '4 – גאות ושפל',   icon: '🚧' },
+    { num: 5, label: '5 – גיאותרמי',    icon: '🌋' },
+    { num: 6, label: '6 – <span dir="ltr" class="inline-block">OTEC</span>', icon: '🌊' },
+  ];
+
+  let currentStudent = null;
+  let currentTab = 1;
+  const viewedTabs = new Set();
+
+  function getStudent(id) {
+    const clean = String(id).trim();
+    const found = STUDENT_DB.find(s => s.id === clean);
+    if (!found) return null;
+    const d = { ...found };
+    if ('us1' in d) { d.U1 = d.us1; delete d.us1; }
+    return d;
+  }
+
+  // ── Input UX ──
+
+  function updateInputUI() {
+    const input = document.getElementById('studentId');
+    const clearBtn = document.getElementById('clearBtn');
+    const hint = document.getElementById('enterHint');
+    const hasValue = input.value.length > 0;
+    clearBtn.classList.toggle('visible', hasValue);
+    hint.classList.toggle('hidden', hasValue);
+  }
+
+  function saveStudentId(id) {
+    try { localStorage.setItem('altEnergy_studentId', id); } catch(e) {}
+  }
+
+  function loadSavedStudentId() {
+    try { return localStorage.getItem('altEnergy_studentId') || ''; } catch(e) { return ''; }
+  }
+
+  function hideError() {
+    const container = document.getElementById('errorMsgContainer');
+    const msgEl = document.getElementById('errorMsg');
+    container.classList.add('hidden');
+    msgEl.innerHTML = '';
+  }
+
+  let errorTimeout = null;
+
+  function showError(msg, persist) {
+    const container = document.getElementById('errorMsgContainer');
+    const msgEl = document.getElementById('errorMsg');
+    msgEl.innerHTML = msg;
+    container.classList.remove('hidden');
+    if (errorTimeout) clearTimeout(errorTimeout);
+    if (!persist) {
+      errorTimeout = setTimeout(() => hideError(), 5000);
+    }
+  }
+
+  // ── Clear button ──
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    const input = document.getElementById('studentId');
+    input.value = '';
+    input.focus();
+    hideError();
+    updateInputUI();
+  });
+
+  // ── Error dismiss ──
+  document.getElementById('errorDismiss').addEventListener('click', hideError);
+
+  // ── Input real-time events ──
+  document.getElementById('studentId').addEventListener('input', () => {
+    updateInputUI();
+    if (!document.getElementById('errorMsgContainer').classList.contains('hidden')) {
+      hideError();
+    }
+  });
+
+  // ── Keyboard: Enter submits, Escape clears ──
+  document.getElementById('studentId').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); handleCalculate(); }
+    if (e.key === 'Escape') {
+      document.getElementById('clearBtn').click();
+      e.target.blur();
+    }
+  });
+
+  // ── Loading state ──
+  function setLoading(on) {
+    const btn = document.getElementById('calcBtn');
+    const icon = document.getElementById('btnIcon');
+    const txt  = document.getElementById('btnText');
+    if (on) {
+      btn.disabled = true;
+      btn.style.opacity = '0.7';
+      btn.style.cursor = 'wait';
+      icon.outerHTML = `<span id="btnIcon" class="spinner"></span>`;
+      txt.textContent = 'מחשב...';
+    } else {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.cursor = '';
+      const spinner = document.getElementById('btnIcon');
+      if (spinner) spinner.outerHTML = `<span id="btnIcon">🚀</span>`;
+      txt.textContent = 'טען נתונים וחשב';
+    }
+  }
+
+  // ── Quick Stats ──
+  function updateStats(studentId) {
+    const bar = document.getElementById('statsBar');
+    bar.classList.remove('hidden');
+    document.getElementById('statStudentId').textContent = studentId;
+    document.getElementById('statCompleted').textContent = viewedTabs.size;
+  }
+
+  // ── Main Calculate ──
+  function handleCalculate() {
+    const id = document.getElementById('studentId').value.trim();
+    if (!id) { showError('⚠️ אנא הזן תעודת זהות לפני הלחיצה.'); return; }
+    hideError();
+    setLoading(true);
+    saveStudentId(id);
+
+    setTimeout(() => {
+      const student = getStudent(id);
+      if (!student) {
+        setLoading(false);
+        showError(`❌ תעודת זהות <span dir="ltr" class="inline-block">${id}</span> לא נמצאה במסד הנתונים. אנא ודא שהקלדת אותה נכון.`);
+        return;
+      }
+      currentStudent = student;
+      viewedTabs.clear();
+      renderParams(student);
+      renderTabBar();
+      renderTab(1);
+      document.getElementById('paramsCard').classList.remove('hidden');
+      document.getElementById('solutionsCard').classList.remove('hidden');
+      updateStats(id);
+      setLoading(false);
+      document.getElementById('solutionsCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('yearSpan').textContent = new Date().getFullYear();
+    }, 50);
+  }
+
+  // ── Render params panel ──
+  function renderParams(s) {
+    const grid = document.getElementById('paramsGrid');
+    document.getElementById('studentIdDisplay').innerHTML = `ת.ז: <span dir="ltr" class="inline-block">${s.id}</span>`;
+    grid.innerHTML = '';
+    for (const [key, meta] of Object.entries(PARAM_META)) {
+      if (!(key in s)) continue;
+      const chip = document.createElement('div');
+      chip.className = `param-chip rounded-xl px-4 py-2.5 flex flex-col items-center min-w-[120px]`;
+      chip.innerHTML = `<span class="text-slate-400 text-xs font-medium mb-0.5">${meta.label}</span>
+                        <span class="text-white font-bold text-lg" dir="ltr" class="inline-block">${s[key]} <span class="text-slate-400 text-sm font-normal">${meta.unit}</span></span>`;
+      grid.appendChild(chip);
+    }
+  }
+
+  // ── Tab bar rendering ──
+  function renderTabBar() {
+    const bar = document.getElementById('tabBar');
+    bar.innerHTML = '';
+    TAB_DEFS.forEach(t => {
+      const btn = document.createElement('button');
+      btn.id = `tab-btn-${t.num}`;
+      btn.className = `tab-btn flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 flex-shrink-0`;
+      btn.innerHTML = `<span>${t.icon}</span><span>${t.label}</span>`;
+      btn.onclick = () => renderTab(t.num);
+      btn.setAttribute('role', 'tab');
+      btn.setAttribute('aria-selected', 'false');
+      bar.appendChild(btn);
+    });
+    document.getElementById('tabContent').innerHTML = '';
+  }
+
+  // ── Tab content rendering ──
+  function renderTab(num) {
+    currentTab = num;
+    viewedTabs.add(num);
+    if (currentStudent) updateStats(currentStudent.id);
+
+    TAB_DEFS.forEach(t => {
+      const btn = document.getElementById(`tab-btn-${t.num}`);
+      if (btn) {
+        btn.classList.toggle('active', t.num === num);
+        btn.setAttribute('aria-selected', t.num === num ? 'true' : 'false');
+      }
+    });
+
+    const s = currentStudent;
+    let result;
+    switch(num) {
+      case 1: result = solveQ1(s.H, s.id); break;
+      case 2: result = solveQ2(s.U, s.id); break;
+      case 3: result = solveQ3(s.U1, s.U2, s.id); break;
+      case 4: result = solveQ4(s.h, s.id); break;
+      case 5: result = solveQ5(s.m_dot, s.T_g, s.T_c, s.eta, s.id); break;
+      case 6: result = solveQ6(s.T1, s.T2, s.eta, s.id); break;
+    }
+
+    const tabDef = TAB_DEFS[num - 1];
+    const inputsHtml = getInputsHtml(num, s);
+    const metricsHtml = result.metrics.map(m => `
+      <div class="metric-card rounded-xl px-4 py-4 flex flex-col items-center text-center min-w-[140px]">
+        <span class="text-slate-400 text-xs font-medium mb-1.5 leading-tight">${m.label}</span>
+        <span class="text-white font-black text-xl leading-tight">${m.value}</span>
+      </div>`).join('');
+
+    const container = document.getElementById('tabContent');
+    container.innerHTML = `
+      <div class="fade-in space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <span class="text-2xl">${tabDef.icon}</span>
+            <span>שאלה ${num} – ${getTabTitle(num)}</span>
+          </h2>
+          <div class="text-slate-400 text-sm mt-1.5">${inputsHtml}</div>
+        </div>
+        <div class="flex flex-wrap gap-3">${metricsHtml}</div>
+        <div class="border-t border-slate-800"></div>
+        <div>
+          <h3 class="text-slate-300 font-semibold text-sm mb-3 flex items-center gap-2">
+            <span>📐</span>
+            <span>פתרון שלב-אחר-שלב מפורט (ת.ז <span dir="ltr" class="inline-block">${s.id}</span>)</span>
+          </h3>
+          <div class="explanation-box rounded-xl p-5">
+            ${result.steps}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── Tab helper titles ──
+  function getTabTitle(num) {
+    const titles = {
+      1: 'ניתוח אווירודינמי של טורבינת רוח',
+      2: 'התפלגות וייבול – ניתוח מהירויות',
+      3: 'התפלגות ריילי – ניתוח הסתברותי',
+      4: 'תחנת כוח גאות ושפל (Tidal Barrage)',
+      5: 'גיאותרמי – מחזור <span dir="ltr" class="inline-block">Single-Flash</span>',
+      6: '<span dir="ltr" class="inline-block">OTEC</span> – מחזור <span dir="ltr" class="inline-block">Rankine</span> עם <span dir="ltr" class="inline-block">R-134a</span>',
+    };
+    return titles[num] || '';
+  }
+
+  function getInputsHtml(num, s) {
+    const texts = {
+      1: `גובה רוטור: <span dir="ltr" class="inline-block text-white font-semibold">H = ${s.H} מ'</span> <span class="text-slate-400">(קבועים: <span dir="ltr" class="inline-block">z_r = 10 מ'</span>, <span dir="ltr" class="inline-block">U_{ref} = 6.5 מ'/ש'</span>, <span dir="ltr" class="inline-block">D = 60 מ'</span>, <span dir="ltr" class="inline-block">&rho; = 1.165 ק"ג/מ³</span>)</span>`,
+      2: `פרמטר מהירות: <span dir="ltr" class="inline-block text-white font-semibold">U = ${s.U} מ'/ש'</span> <span class="text-slate-400">(קבועים: <span dir="ltr" class="inline-block">k = 1.6</span>, <span dir="ltr" class="inline-block">N = 8,760 שעות בשנה</span>)</span>`,
+      3: `מהירות כניסה: <span dir="ltr" class="inline-block text-white font-semibold">U₁ = ${s.U1} מ'/ש'</span>, מהירות עצירה: <span dir="ltr" class="inline-block text-white font-semibold">U₂ = ${s.U2} מ'/ש'</span> <span class="text-slate-400">(קבועים: <span dir="ltr" class="inline-block">Ū = 10 מ'/ש'</span>, <span dir="ltr" class="inline-block">U_R = 13 מ'/ש'</span>, <span dir="ltr" class="inline-block">P_{rated} = 1 MW</span>)</span>`,
+      4: `גובה סכר: <span dir="ltr" class="inline-block text-white font-semibold">h = ${s.h} מ'</span> <span class="text-slate-400">(קבועים: <span dir="ltr" class="inline-block">P = 1.2 MW</span>, <span dir="ltr" class="inline-block">H = 6.6 מ'</span>)</span>`,
+      5: `ספיקה: <span dir="ltr" class="inline-block text-white font-semibold">ṁ = ${s.m_dot} ק"ג/ש'</span>, טמפ׳ מקור: <span dir="ltr" class="inline-block text-white font-semibold">T_g = ${s.T_g}°C</span>, טמפ׳ מעבה: <span dir="ltr" class="inline-block text-white font-semibold">T_c = ${s.T_c}°C</span>, נצילות טורבינה: <span dir="ltr" class="inline-block text-white font-semibold">&eta; = 80%</span>`,
+      6: `טמפ׳ מעבה: <span dir="ltr" class="inline-block text-white font-semibold">T₁ = ${s.T1}°C</span>, טמפ׳ מאייד: <span dir="ltr" class="inline-block text-white font-semibold">T_2 = ${s.T2}°C</span>, נצילות טורבינה: <span dir="ltr" class="inline-block text-white font-semibold">&eta; = ${s.eta}%</span>`,
+    };
+    return texts[num] || '';
+  }
+
+  // ── Initialize on load ──
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('yearSpan').textContent = new Date().getFullYear();
+    const savedId = loadSavedStudentId();
+    if (savedId) {
+      document.getElementById('studentId').value = savedId;
+      updateInputUI();
+    }
+  });
+  </script>
+</body>
+</html>

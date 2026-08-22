@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>תרגול מבחן – מבוא למערכות רובוטיות</title>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<style>
+  :root{
+    --bg:#121212; --card:#1e1e1e; --card2:#2a2a2a; --muted:#a1a1aa;
+    --text:#f4f4f5; --accent:#f59e0b; --accent2:#d97706;
+    --good:#10b981; --good-bg:rgba(16,185,129,.15); --bad:#ef4444; --bad-bg:rgba(239,68,68,.15);
+    --warn:#fbbf24; --border:#3f3f46; --shadow:0 10px 30px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Segoe UI",system-ui,Arial,sans-serif;
+    background:radial-gradient(1200px 600px at 80% -10%,#1e3a5f33,transparent),var(--bg);
+    color:var(--text);min-height:100vh;line-height:1.6;
+  }
+  .wrap{max-width:880px;margin:0 auto;padding:24px 16px 80px}
+  header.top{text-align:center;margin-bottom:18px}
+  header.top h1{font-size:1.7rem;margin:0 0 6px;color:#fff}
+  header.top p{margin:0;color:var(--muted);font-size:.95rem}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:24px}
+
+  /* Start screen */
+  .start-opts{display:flex;flex-direction:column;gap:16px;margin:18px 0 6px}
+  .opt-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px 16px}
+  .opt-row .lbl{font-weight:600}
+  .opt-row .desc{color:var(--muted);font-size:.82rem;margin-top:2px}
+  .seg{display:flex;background:#0b1220;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .seg button{background:transparent;border:0;color:var(--muted);padding:8px 14px;cursor:pointer;font-size:.9rem;font-family:inherit}
+  .seg button.active{background:var(--accent);color:#18181b;font-weight:700}
+  .switch{position:relative;width:52px;height:28px;flex:0 0 auto}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;background:#0b1220;border:1px solid var(--border);border-radius:999px;transition:.2s;cursor:pointer}
+  .slider:before{content:"";position:absolute;height:20px;width:20px;right:3px;top:3px;background:var(--muted);border-radius:50%;transition:.2s}
+  .switch input:checked + .slider{background:var(--accent)}
+  .switch input:checked + .slider:before{transform:translateX(-24px);background:#18181b}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:12px;
+    padding:13px 22px;font-size:1rem;font-weight:700;font-family:inherit;cursor:pointer;transition:.15s;background:var(--accent);color:#18181b}
+  .btn:hover{transform:translateY(-1px);background:var(--accent2);color:#fff}
+  .btn.block{width:100%;margin-top:18px;padding:15px}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  .btn.ghost:hover{background:var(--card2);color:#fff;transform:none}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+  /* Quiz */
+  .bar{height:8px;background:#0b1220;border-radius:999px;overflow:hidden;margin-bottom:6px}
+  .bar > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--good));transition:width .3s}
+  .meta{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.85rem;margin-bottom:16px}
+  .meta .score b{color:var(--good)}
+  .qnum{display:inline-block;background:var(--card2);border:1px solid var(--border);color:var(--accent);font-size:.78rem;border-radius:8px;padding:3px 10px;margin-bottom:12px}
+  .qtext{font-size:1.18rem;font-weight:600;color:#fff;margin:0 0 18px}
+  .qtext.code{font-family:"Consolas","Courier New",ui-monospace,monospace;font-size:.86rem;font-weight:500;line-height:1.55;
+    white-space:pre-wrap;unicode-bidi:plaintext;background:#0b1220;border:1px solid var(--border);border-radius:10px;padding:14px}
+  .options{display:flex;flex-direction:column;gap:10px}
+  .option{display:flex;align-items:flex-start;gap:12px;text-align:right;width:100%;
+    background:var(--card2);border:1.5px solid var(--border);border-radius:12px;padding:13px 15px;
+    cursor:pointer;font-size:1rem;font-family:inherit;color:var(--text);transition:.12s}
+  .option:hover:not(:disabled){border-color:var(--accent);background:#2a3b54}
+  .option .key{flex:0 0 auto;width:26px;height:26px;border-radius:7px;background:#0b1220;border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;color:var(--muted)}
+  .option .otext{flex:1;direction:rtl;unicode-bidi:plaintext}
+  .option.correct{border-color:var(--good);background:var(--good-bg)}
+  .option.correct .key{background:var(--good);color:#04140a;border-color:var(--good)}
+  .option.wrong{border-color:var(--bad);background:var(--bad-bg)}
+  .option.wrong .key{background:var(--bad);color:#1a0606;border-color:var(--bad)}
+  .option.chosen{outline:2px solid var(--accent)}
+  .option:disabled{cursor:default}
+  .mark{margin-inline-start:auto;font-weight:800;font-size:1.05rem}
+
+  .explain{margin-top:16px;border-radius:12px;padding:13px 15px;font-size:.96rem;display:none;
+    background:var(--good-bg);border:1px solid var(--good)}
+  .explain.show{display:block}
+  .explain.miss{background:var(--bad-bg);border-color:var(--bad)}
+  .explain b{display:block;margin-bottom:3px}
+
+  .nav{display:flex;justify-content:space-between;gap:10px;margin-top:20px}
+
+  /* Results */
+  .result-head{text-align:center}
+  .ring{--p:0;width:150px;height:150px;border-radius:50%;margin:6px auto 14px;
+    background:conic-gradient(var(--good) calc(var(--p)*1%), #0b1220 0);
+    display:flex;align-items:center;justify-content:center;position:relative}
+  .ring:after{content:"";position:absolute;inset:12px;border-radius:50%;background:var(--card)}
+  .ring .pct{position:relative;z-index:1;font-size:2rem;font-weight:800;color:#fff}
+  .res-sub{color:var(--muted);margin-bottom:6px}
+  .review h3{margin:24px 0 12px;color:#fff}
+  .rev-item{border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;background:var(--card2)}
+  .rev-item.ok{border-inline-start:4px solid var(--good)}
+  .rev-item.no{border-inline-start:4px solid var(--bad)}
+  .rev-q{font-weight:600;margin-bottom:8px;white-space:pre-wrap;unicode-bidi:plaintext}
+  .rev-line{font-size:.92rem;margin:3px 0}
+  .rev-line .tag{display:inline-block;min-width:74px;color:var(--muted)}
+  .rev-line.you-no{color:#fca5a5}
+  .rev-line.you-ok{color:#86efac}
+  .rev-exp{margin-top:8px;font-size:.88rem;color:var(--muted);border-top:1px dashed var(--border);padding-top:8px}
+  .hidden{display:none}
+  .filterbtns{display:flex;gap:8px;margin:8px 0 4px;flex-wrap:wrap}
+  .chip{background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:6px 14px;cursor:pointer;font-size:.85rem;font-family:inherit}
+  .chip.active{background:var(--accent);color:#04293b;font-weight:700;border-color:var(--accent)}
+  footer.foot{text-align:center;color:var(--muted);font-size:.78rem;margin-top:26px}
+  kbd{background:#0b1220;border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:.8rem}
+
+  /* Tabs Navigation */
+  .tabs { display:flex; gap:10px; margin-bottom:20px; justify-content:center; flex-wrap:wrap; }
+  .tab-btn { background:var(--card2); border:1px solid var(--border); color:var(--text); padding:10px 18px; border-radius:12px; cursor:pointer; font-weight:600; transition:0.2s; font-family:inherit; font-size:1rem; }
+  .tab-btn:hover { background:var(--border); }
+  .tab-btn.active { background:var(--accent); color:#18181b; border-color:var(--accent); }
+
+  /* View Containers */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Flashcards */
+  .fc-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom:20px; }
+  @media (min-width:600px){ .fc-grid { grid-template-columns: 1fr 1fr; } }
+  .fc-card { background: linear-gradient(145deg, var(--card2), #1a2538); border: 1px solid var(--border); border-right: 4px solid var(--accent); border-radius: 16px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 16px; transition: transform 0.2s; direction:rtl;}
+  .fc-card:hover { transform: translateY(-4px); border-right-color: var(--good); }
+  .fc-q { font-weight:700; font-size:1.15rem; color:#fff; line-height:1.5; position:relative; padding-right:32px;}
+  .fc-q::before { content:'Q.'; position:absolute; right:0; top:0; color:var(--accent); font-size:1.4rem; font-weight:900; opacity:0.8;}
+  .fc-a { font-size:1.05rem; color:var(--good); font-weight:600; background:var(--good-bg); padding:16px; border-radius:12px; border:1px solid rgba(34,197,94,0.3); position:relative; padding-right:32px;}
+  .fc-a::before { content:'A.'; position:absolute; right:6px; top:16px; color:var(--good); font-size:1.3rem; font-weight:900; opacity:0.8; line-height:1;}
+  .fc-nav { display:flex; justify-content:center; gap:15px; margin-top:20px; align-items:center; font-weight:bold; }
+
+  /* Memory Game */
+  .mem-levels { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-bottom:24px; direction:rtl; }
+  .mem-lvl-btn { width:75px; height:75px; border-radius:16px; background:var(--card2); border:2px solid var(--border); color:var(--muted); font-size:1.4rem; font-weight:bold; cursor:not-allowed; display:flex; flex-direction:column; align-items:center; justify-content:center; transition:0.2s; position:relative; }
+  .mem-lvl-btn.unlocked { cursor:pointer; color:var(--text); border-color:var(--accent); }
+  .mem-lvl-btn.unlocked:hover { background:#2a3b54; transform:translateY(-2px); }
+  .mem-lvl-prog { font-size:0.8rem; color:var(--good); font-weight:normal; margin-top:4px; }
+  .mem-board { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-top:20px; direction:rtl; }
+  @media (max-width:600px){ .mem-board { grid-template-columns:repeat(2, 1fr); } }
+  .mem-card { background: linear-gradient(135deg, var(--card2), #152030); border: 2px solid var(--border); border-radius: 14px; padding: 10px; cursor: pointer; text-align: center; display: flex; align-items: center; justify-content: center; min-height: 120px; font-size: 0.95rem; font-weight: 600; color: var(--text); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); user-select: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); position: relative; overflow: hidden; }
+  .mem-card:hover:not(.matched):not(.selected) { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(56, 189, 248, 0.15); }
+  .mem-card.hidden-content { background: radial-gradient(circle at center, #1e293b, #0f172a); color: transparent; border-color: #334155; }
+  .mem-card.hidden-content::after { content: "🧠"; color: var(--accent); font-size: 2.5rem; position: absolute; opacity: 0.6; }
+  .mem-card.selected { border-color: var(--accent); background: var(--card); color: #fff; transform: scale(1.02); box-shadow: 0 0 15px rgba(56, 189, 248, 0.3); }
+  .mem-card.matched { border-color: var(--good); background: linear-gradient(135deg, var(--good-bg), rgba(34,197,94,0.05)); color: #a7f3d0; cursor: default; box-shadow: 0 0 10px rgba(34, 197, 94, 0.2); }
+  .mem-header { text-align:center; margin-bottom:20px; }
+  .mem-stats { display:flex; justify-content:center; gap:20px; margin-bottom:20px; color:var(--muted); font-weight:bold; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>🤖 מבוא למערכות רובוטיות</h1>
+    <p>תרגול אינטראקטיבי לקראת המבחן · <span id="qcount"></span> שאלות</p>
+  </header>
+
+  <nav class="tabs" id="mainTabs">
+    <button class="tab-btn active" data-target="view-quiz">🤖 תרגול / מבחן</button>
+    <button class="tab-btn" data-target="view-memory">🧠 משחק זיכרון</button>
+    <button class="tab-btn" data-target="view-flashcards">🗂️ כרטיסיות לימוד</button>
+  </nav>
+
+  <!-- QUIZ APP -->
+  <div id="view-quiz" class="view active">
+
+  <!-- START -->
+  <section id="start" class="card">
+    <div class="start-opts">
+      <div class="opt-row">
+        <div>
+          <div class="lbl">מצב תרגול</div>
+          <div class="desc">תרגול: משוב מיידי אחרי כל שאלה · מבחן: ציון בסוף בלבד</div>
+        </div>
+        <div class="seg" id="modeSeg">
+          <button data-mode="practice" class="active">תרגול</button>
+          <button data-mode="exam">מבחן</button>
+        </div>
+      </div>
+      <div class="opt-row">
+        <div>
+          <div class="lbl">ערבוב שאלות</div>
+          <div class="desc">סדר אקראי בכל ניסיון</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="shuffleQ" checked><span class="slider"></span></label>
+      </div>
+      <div class="opt-row">
+        <div>
+          <div class="lbl">ערבוב תשובות</div>
+          <div class="desc">ערבוב סדר התשובות בכל שאלה</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="shuffleA" checked><span class="slider"></span></label>
+      </div>
+    </div>
+    <button class="btn block" id="startBtn">התחל תרגול ▸</button>
+    <p style="color:var(--muted);font-size:.8rem;text-align:center;margin-top:14px">
+      טיפ: אפשר לבחור תשובה עם המקשים <kbd>1</kbd>–<kbd>4</kbd> ולעבור עם <kbd>Enter</kbd>
+    </p>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="quiz" class="card hidden">
+    <div class="bar"><i id="progFill"></i></div>
+    <div class="meta">
+      <span>שאלה <span id="curIdx">1</span> מתוך <span id="total">0</span></span>
+      <span class="score">נכון: <b id="scoreNow">0</b></span>
+    </div>
+    <div class="qnum" id="qOrigNum"></div>
+    <h2 class="qtext" id="qText"></h2>
+    <div class="options" id="opts"></div>
+    <div class="explain" id="explain"></div>
+    <div class="nav">
+      <button class="btn ghost" id="prevBtn">◂ הקודם</button>
+      <button class="btn" id="nextBtn">הבא ▸</button>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="results" class="card hidden">
+    <div class="result-head">
+      <div class="ring" id="ring"><span class="pct" id="pct">0%</span></div>
+      <h2 style="margin:.2rem 0;color:#fff" id="resTitle"></h2>
+      <p class="res-sub" id="resSub"></p>
+      <div class="nav" style="justify-content:center">
+        <button class="btn" id="againBtn">תרגול מחדש</button>
+        <button class="btn ghost" id="retryWrongBtn">תרגל רק טעויות</button>
+      </div>
+    </div>
+    <div class="review">
+      <h3>סקירת תשובות</h3>
+      <div class="filterbtns">
+        <button class="chip active" data-f="all">הכל</button>
+        <button class="chip" data-f="wrong">טעויות</button>
+        <button class="chip" data-f="right">נכונות</button>
+      </div>
+      <div id="reviewList"></div>
+    </div>
+  </section>
+  </div> <!-- end view-quiz -->
+
+  <!-- MEMORY GAME -->
+  <div id="view-memory" class="view">
+    <div id="mem-level-select" class="card">
+      <h2 style="text-align:center;margin-top:0;">בחר שלב במשחק הזיכרון</h2>
+      <div class="mem-levels" id="memLevelsContainer"></div>
+    </div>
+    
+    <div id="mem-game-area" class="card hidden">
+      <div class="mem-header">
+        <h2 id="memLevelTitle" style="margin:0 0 10px 0;">שלב 1</h2>
+        <div class="mem-stats">
+          <span>ניסיונות: <span id="memMoves">0</span></span>
+          <span>התאמות: <span id="memMatches">0</span>/8</span>
+        </div>
+        <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
+          <button class="btn ghost" id="memBackBtn">◂ חזור לשלבים</button>
+          <button class="btn ghost hidden" id="memRevealBtn">👀 הצג הכל</button>
+          <button class="btn" id="memPlayBtn">התחל לשחק ▸</button>
+        </div>
+      </div>
+      <div class="mem-board" id="memBoard"></div>
+    </div>
+  </div>
+
+  <!-- FLASHCARDS -->
+  <div id="view-flashcards" class="view">
+    <div class="card">
+      <h2 style="text-align:center;margin-top:0;">כרטיסיות לימוד (Flashcards)</h2>
+      <div class="fc-grid" id="fcGrid"></div>
+      <div class="fc-nav">
+        <button class="btn ghost" id="fcPrevBtn">◂ הקודם</button>
+        <span id="fcPageInfo">עמוד 1 מתוך 20</span>
+        <button class="btn" id="fcNextBtn">הבא ▸</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="foot">נבנה מקובץ ה-PDF של מטלות הקורס · בהצלחה במבחן! 💪</footer>
+</div>
+
+<script>
+const QUESTIONS = [
+{
+"q": 6,
+"topic": "חיישנים, מוצאים ו-CoppeliaSim",
+"question": "במערכת סביבתית עם רעש חשמלי גבוה בכבלים, איזה סוג מוצא מומלץ לבחור כדי לצמצם השפעת רעש בהתאם לטבלה במדריך?",
+"options": {
+"a": "מוצא דיגיטלי (0/1)",
+"b": "מוצא תקשורת סדרתית I2C",
+"c": "מוצא אנלוגי רציף 0-5V",
+"d": "מוצא מבוסס שינוי התנגדות"
+},
+"correct": "a",
+"explanation": "נכון. אות דיגיטלי פחות רגיש לרעש בזכות מרווח ביטחון בין רמות המתח."
+},
+{
+"q": 9,
+"topic": "חיישנים, מוצאים ו-CoppeliaSim",
+"question": "מדידות טמפרטורה כוללות ספייקים בודדים וערכי קצה חריגים. איזה מסנן מהמדריך עדיף לבחור?",
+"options": {
+"a": "מסנן אקספוננציאלי (EMA) עם α גבוה",
+"b": "מסנן חציון (Median)",
+"c": "ללא סינון – רק הגדלת קצב הדגימה",
+"d": "ממוצע נע (SMA) בחלון רחב"
+},
+"correct": "b",
+"explanation": "נכון. Median מתאים במיוחד להסרת חריגים מבלי לעוות את שאר המדידות."
+},
+{
+"q": 10,
+"topic": "חיישנים, מוצאים ו-CoppeliaSim",
+"question": "ב-macOS מתקבלת הודעה ש-pip לא נמצא. מה ממליץ המדריך לעשות?",
+"options": {
+"a": "להסיר ולהתקין מחדש את VS Code",
+"b": "להריץ python3 -m pip במקום pip",
+"c": "להוסיף alias חדש בשם pip שמפנה ל-python",
+"d": "להריץ את הפקודה עם sudo כדי לקבל הרשאות"
+},
+"correct": "b",
+"explanation": "נכון. זו ההמלצה הרשמית במקרה שהפקודה pip אינה מזוהה."
+},
+{
+"q": 15,
+"topic": "חיישנים, מוצאים ו-CoppeliaSim",
+"question": "חברת סטארט-אפ מעוניינת לכייל חיישן ייעודי במתקן הייצור שלה, גם אם זה יאריך את זמן היציאה לשוק. איזו גישת כיול מהמדריך מתאימה?",
+"options": {
+"a": "כיול נקודה אחת מתמשך",
+"b": "כיול פנימי (Internal Calibration)",
+"c": "פתרון משולב מספק החיישן",
+"d": "שימוש ב-Auto-calibration של ה-ADC"
+},
+"correct": "b",
+"explanation": "נכון. הגישה הפנימית מתאימה כאשר רוצים שליטה מלאה גם במחיר עיכוב."
+},
+{
+"q": 18,
+"topic": "חיישנים, מוצאים ו-CoppeliaSim",
+"question": "ב-Position Dialog של CoppeliaSim רוצים להזיז חיישן יחסית לרובוט ההורה שלו. איזו מערכת ייחוס יש לבחור?",
+"options": {
+"a": "Own",
+"b": "World",
+"c": "Camera frame",
+"d": "Parent"
+},
+"correct": "d",
+"explanation": "נכון. מערכת ייחוס Parent משרשרת את התנועה למסגרת ההורה."
+},
+{
+"q": 25,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "מהי מגבלה חשובה של Floating Views כפי שצוינה במדריך?",
+"options": {
+"a": "הן אינן מאפשרות ניתוק מתצוגה קיימת",
+"b": "הן חייבות להיות מקובעות לפינה ימנית עליונה",
+"c": "הן אינן יכולות להציג חיישני ראייה",
+"d": "לא ניתן לבצע בהן ניווט בעזרת העכבר"
+},
+"correct": "d",
+"explanation": "נכון. זו המגבלה שצוינה במפורש במדריך."
+},
+{
+"q": 27,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "בעת ניווט אבדתם את הסצנה. איזה קיצור דרך מציע המדריך לחזרה מהירה אל אובייקט נבחר?",
+"options": {
+"a": "Ctrl+B להתאמת תצוגה לכל הסצנה",
+"b": "Ctrl+F על האובייקט הנבחר",
+"c": "Ctrl+E למעבר בין מצבי עריכה",
+"d": "Ctrl+Alt+C למיקוד ב-Commander"
+},
+"correct": "b",
+"explanation": "נכון. זהו קיצור הדרך שהומלץ כדי לחזור במהירות לסצנה."
+},
+{
+"q": 31,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "מתי כדאי להשתמש ב-Commander המובנה של CoppeliaSim לפי המדריך?",
+"options": {
+"a": "כאשר רוצים להריץ קטע קוד קצר לבדיקה מהירה או דיבאג",
+"b": "כאשר מבצעים הקלטת מסלול למצלמה",
+"c": "כאשר צריך לטעון סצנה חדשה במהירות",
+"d": "כאשר רוצים להפעיל סימולציה ללא חיבור לממשק המשתמש"
+},
+"correct": "a",
+"explanation": "נכון. זו בדיוק המטרה של Commander על פי המדריך."
+},
+{
+"q": 33,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "מה ממליץ המדריך לגבי הגדרת Auto-save ב-User Settings?",
+"options": {
+"a": "להגדיר Auto-save פעם בשעה כדי לחסוך מקום דיסק",
+"b": "להתאים Auto-save רק אם עובדים עם יותר מ-3 רובוטים",
+"c": "להפעיל Auto-save כל 5–10 דקות",
+"d": "לבטל Auto-save כדי לשמור על ביצועים מקסימליים"
+},
+"correct": "c",
+"explanation": "נכון. זהו פרק ההמלצות תחת הגדרות המשתמש."
+},
+{
+"q": 35,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "איזו פונקציה מהמדריך משמשת לשרשור טרנספורמציות בייצוג Pose?",
+"options": {
+"a": "sim.interpolateMatrices",
+"b": "sim.getQuaternionInverse",
+"c": "sim.multiplyPoses",
+"d": "sim.poseToMatrix"
+},
+"correct": "c",
+"explanation": "נכון. פונקציה זו מיועדת לשרשור טרנספורמציות ב-poses."
+},
+{
+"q": 36,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "איזו טעות נפוצה בתהליך הכיול עלולה להשאיר שגיאת שיפוע לפי המדריך?",
+"options": {
+"a": "שימוש בתקן כיול מדויק",
+"b": "המתנה לייצבות החיישן לפני כיול",
+"c": "ביצוע כיול בנקודה אחת בלבד",
+"d": "בדיקה במספר נקודות לאורך הטווח"
+},
+"correct": "c",
+"explanation": "נכון. כך לא ניתן לתקן שגיאת שיפוע."
+},
+{
+"q": 38,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "מה מתארת זווית Pitch לפי פירוט זוויות Yaw-Pitch-Roll במדריך?",
+"options": {
+"a": "סיבוב סביב ציר האורך של הגוף",
+"b": "סיבוב אופקי כמו הסבת ראש לצדדים",
+"c": "שינוי יחסי של ציר Z ביחס לעולם",
+"d": "סיבוב אנכי כמו הנהון ראש"
+},
+"correct": "d",
+"explanation": "נכון. זו ההגדרה שניתנה בקטע Yaw-Pitch-Roll."
+},
+{
+"q": 22,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "מהנדס אנרגיה מחבר חיישן מתח סולארי שמוציא 0-5V (מקביל ל-0-25V של הפאנל דרך מחלק מתח 5:1) לפין A0 של Arduino Uno. הוא רוצה להדליק LED ירוק כשהמתח מעל 18V ו-LED אדום כשהמתח מתחת ל-12V. מהם ערכי הסף הנכונים ב-ADC?",
+"options": {
+"a": "18V → ADC ≈ 512, 12V → ADC ≈ 256",
+"b": "18V → ADC ≈ 900, 12V → ADC ≈ 600",
+"c": "18V → ADC ≈ 737, 12V → ADC ≈ 491",
+"d": "18V → ADC = 18, 12V → ADC = 12"
+},
+"correct": "c",
+"explanation": "נכון! 18V/5 = 3.6V → (3.6/5)×1023 ≈ 737. 12V/5 = 2.4V → (2.4/5)×1023 ≈ 491."
+},
+{
+"q": 36,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "תא בדיקת תאורה אוטומטי דורש שליטת PWM בתדר מעל 900Hz כדי להימנע מריצוד הנראה לחיישן מצלמה שמצלם ב-480fps. ל-Arduino Uno מוצמדים ארבעה פנסי LED ל-pins שונים. על אילו פינים יש להגדיר analogWrite() כדי לעמוד בתדר הנדרש ללא שינוי הגדרות טיימר?",
+"options": {
+"a": "פינים A0-A5 (אנלוגיים) שתומכים ב-PWM בתדרים משתנים.",
+"b": "פין 13 (LED מובנה) שתוכנן במיוחד לתדרים גבוהים.",
+"c": "כל פיני ה-PWM (3, 5, 6, 9, 10, 11) פועלים באותו תדר.",
+"d": "פינים 5 ו-6 שפועלים בתדר PWM של כ-980Hz."
+},
+"correct": "d",
+"explanation": "פיני 5 ו-6 ב-Arduino Uno משתמשים ב-Timer0 עם תדר PWM של כ-980Hz ולכן עומדים בדרישת 900Hz ללא שינויים. יתר הפינים (3, 9, 10, 11) עובדים סביב 490Hz בלבד ומייצרים ריצוד עבור מצלמות מהירות."
+},
+{
+"q": 12,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "במערכת עוקבת קו עם שני חיישני IR, מהי תגובת הבקרה כאשר left_ir=True והחיישן הימני False?",
+"options": {
+"a": "מבצעים steer_right כדי לפצות על האור",
+"b": "עוצרים עד ששני החיישנים יחזרו להיות False",
+"c": "נשארים בנסיעה ישרה כי החיישנים מצביעים על אותו דבר",
+"d": "מבצעים steer_left כדי לחזור"
+},
+"correct": "d",
+"explanation": "כאשר החיישן השמאלי רואה שחור והימני לבן, המשמעות היא שהרובוט סוטה שמאלה ולכן צריך לפנות שמאלה כדי להתיישר למרכז הקו."
+},
+{
+"q": 14,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "איזו פונקציה בסקריפט Lua של CoppeliaSim קוראת את מצב חיישן הקרבה?",
+"options": {
+"a": "sim.handleProximityEvent",
+"b": "sim.readProximitySensor",
+"c": "sim.getVisionSensorImage",
+"d": "sim.setJointTargetVelocity"
+},
+"correct": "b",
+"explanation": "הפונקציה מחזירה זוג result/distance וממנה ניתן להסיק האם זוהה אובייקט ובאיזה מרחק."
+},
+{
+"q": 23,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "תוכנית כיול משתמשת ב-map_value(adc, 0, 1023, -40, 125). אם analogRead החזיר 410, מה הטמפרטורה המחושבת בקירוב?",
+"options": {
+"a": "כ- -10°C",
+"b": "כ-90°C",
+"c": "כ-26°C",
+"d": "כ-50°C"
+},
+"correct": "c",
+"explanation": "410/1023≈0.401, מכפילים ברוחב הטווח 165°C ומוסיפים -40 → ≈26°C."
+},
+{
+"q": 27,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "מדידות LDR הראו טווח גולמי של 870–95. איזו קריאה של map_constrained תמיר ערכים אלו ל-0–100% תוך מניעת חריגה?",
+"options": {
+"a": "map_constrained(raw, 95, 870, 0, 100)",
+"b": "map_constrained(raw, 100, 900, -50, 150)",
+"c": "map_value(raw, 0, 870, 0, 255) ללא הגבלה",
+"d": "map_constrained(raw, 0, 1023, 95, 870)"
+},
+"correct": "a",
+"explanation": "הקריאה הנכונה משתמשת בתחום שנמדד מהשטח ומגבילה את הפלט לרצועת 0–100 כדי למנוע ערכים שליליים או מעל 100%."
+},
+{
+"q": 31,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "TMP36 מוציא 1.03V. איזה ערך אמור להחזיר ADC בן 10 ביט עם Vref=5V (בהזנחת רעש)?",
+"options": {
+"a": "≈102",
+"b": "≈525",
+"c": "≈212",
+"d": "≈768"
+},
+"correct": "c",
+"explanation": "(1.03/5)×1023≈211.7 ולכן מתקבלת קריאה סביב 212."
+},
+{
+"q": 39,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "יש למפות קריאת ג'ויסטיק 0–1023 למהירות PWM דו-כיוונית 255- עד +255. איזו נוסחה תבצע זאת?",
+"options": {
+"a": "map_value(pot, 0, 1023, -255, 255)",
+"b": "map_value(pot, 0, 870, -255, 0) ואז להכפיל ב-2",
+"c": "map_value(pot, -255, 255, 0, 1023)",
+"d": "map_value(pot, 0, 1023, 0, 255)"
+},
+"correct": "a",
+"explanation": "יש להמיר מטווח ADC לטווח סימטרי סביב האפס כדי לאפשר תנועה קדימה ואחורה באותה נוסחה."
+},
+{
+"q": 32,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "מהו הטווח המקובל של מרחק חיישני QTR מן המשטח כדי לקבל ניגודיות גבוהה בין קו שחור לרקע בהיר?",
+"options": {
+"a": "גדול מ-10 ס\"מ כדי לכסות שטח גדול",
+"b": "כ-3 עד 5 מ\"מ",
+"c": "בין סנטימטר לשני סנטימטרים",
+"d": "פחות ממיקרומטר אחד"
+},
+"correct": "b",
+"explanation": "שמירה על מרחק של כ-3–5 מ\"מ בין המערך למשטח מבטיחה שהמקטע המואר יהיה חד, שהקו השחור יספוג את האור, ושהקריאה תהיה יציבה."
+},
+{
+"q": 43,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "במערך של שמונה חיישנים התקבלה וקטור מנורמל [10,30,120,850,900,100,40,20]. כיצד ישפיע שינוי המשקל של החיישן השישי מ-5000 ל-3000 על תוצאת המיקום?",
+"options": {
+"a": "התוצאה תהפוך ל-None כי שברנו את ההנחה של שמונה חיישנים",
+"b": "המערכת תדרוש כיול מחדש משום שהמכנה הופך לשלילי",
+"c": "המיקום יישאר זהה כי המשקל אינו משתנה בממוצע משוקלל",
+"d": "המיקום יחושב מעט שמאלה כי תרומת החיישן הימני פוחתת"
+},
+"correct": "d",
+"explanation": "הפחתת המשקל של חיישן ימני תמשוך את התוצאה שמאלה כי תרומתו למונה קטנה. זה משמש לכיול גיאומטרי כאשר חיישן מסוים מרוחק מהמסלול."
+},
+{
+"q": 47,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "בעת בניית מסלול סינוסי בסימולציית Python נבחר הביטוי offset = 1000 * sin(t / 10). מה היתרון של שימוש בפונקציה חלקה כזו עבור בדיקות בקרה?",
+"options": {
+"a": "הוא מבטל את הצורך בחישוב נגזרת כי הסינוס תמיד מחזיר 0",
+"b": "היא מאפסת את הסטייה הממוצעת ולכן לא ניתן למדוד ביצועים",
+"c": "הוא מספק שגיאה משתנה ברציפות שמייצגת מגוון פניות במבחן יחיד",
+"d": "היא מייצרת קפיצות חדות שמדמות פינות 90°"
+},
+"correct": "c",
+"explanation": "מסלול סינוסי מייצר רצף שינויים חלקים בשגיאה ומאפשר לבחון את תגובת הבקר למעברים איטיים ומהירים כאחד בלי חדות לא מציאותית."
+},
+{
+"q": 1,
+"topic": "CoppeliaSim, ADC ומיפוי חיישנים",
+"question": "מנוע DC 12V צורך 2A בעומס מלא. מהו ההספק הממוצע כאשר ה-duty cycle הוא 60%?",
+"options": {
+"a": "14.4W",
+"b": "20W",
+"c": "7.2W",
+"d": "24W"
+},
+"correct": "a",
+"explanation": "P_avg = V × I × duty = 12 × 2 × 0.6 = 14.4W."
+},
+{
+"q": 4,
+"topic": "מנועים, גירים, סרוו ו-Encoders",
+"question": "גלגל בקוטר 70 מ\"מ מחובר למנוע TT עם יחס 1:48. המנוע ללא גיר מסתובב ב-6000rpm. מה מהירות הגלגל באוויר?",
+"options": {
+"a": "≈125rpm (6000/48)",
+"b": "≈48rpm כי היחס הפוך",
+"c": "≈250rpm כי היחס חותך רק חצי",
+"d": "≈6000rpm כי גיר לא משפיע בלי עומס"
+},
+"correct": "a",
+"explanation": "הגיר מפחית מהירות פי 48 גם ללא עומס משמעותי, לכן מהירות גלגל 6000/48≈125rpm."
+},
+{
+"q": 10,
+"topic": "מנועים, גירים, סרוו ו-Encoders",
+"question": "מנוע עם קבוע מהירות 120rpm/V מוזן ב-9V. במדידת Back-EMF מתקבלים 7.2V בהחלקת PWM ל-100% ובאין עומס. מה מהירות הציר?",
+"options": {
+"a": "≈1080rpm (9·120)",
+"b": "≈4320rpm כי צריך להכפיל בארבעה",
+"c": "≈864rpm (7.2·120)",
+"d": "≈72rpm כי Back-EMF נמוך"
+},
+"correct": "c",
+"explanation": "Back-EMF פרופורציונלי למהירות; 7.2V·120rpm/V≈864rpm, מעט מתחת לאידאל בגלל הפסדי נחושת."
+},
+{
+"q": 19,
+"topic": "מנועים, גירים, סרוו ו-Encoders",
+"question": "אינרציית עומס 0.02 kg·m² מחוברת דרך גיר 30:1. מה אינרציה משוקפת לציר המנוע?",
+"options": {
+"a": "≈0.02 kg·m² כי גיר לא משנה אינרציה",
+"b": "≈6×10⁻⁴ kg·m² כי מחלקים רק ב-30",
+"c": "≈2.2×10⁻⁵ kg·m²",
+"d": "≈1.8×10⁻³ kg·m² כי מכפילים ביחס"
+},
+"correct": "c",
+"explanation": "אינרציה משתקפת מחולקת בריבוע היחס: 0.02/30²≈2.2e-5 kg·m², מקלה על בקרת זרם."
+},
+{
+"q": 39,
+"topic": "מנועים, גירים, סרוו ו-Encoders",
+"question": "בלימת מנוע עם LiPo פנימית 80mΩ וזרם רגנרטיבי 3A. כמה יעלה המתח במסילה בזמן זרם זה?",
+"options": {
+"a": "≈0V כי LiPo בולע הכל ללא נפילה",
+"b": "≈8V כי זה מתח התא",
+"c": "≈0.24V (I·R = 3·0.08)",
+"d": "≈2.4V כי הזרם גבוה"
+},
+"correct": "c",
+"explanation": "ב-LiPo ההתנגדות הפנימית סופגת את הזרם; ΔV≈I·R≈0.24V, לרוב בטוח יותר מספק קשיח."
+},
+{
+"q": 40,
+"topic": "מנועים, גירים, סרוו ו-Encoders",
+"question": "נדרש נגד בלימה לספוג עד 60W ב-12V בעת בלימה. מה ערך הנגד התאורטי?",
+"options": {
+"a": "≈0.2Ω כדי להוריד מתח מהר",
+"b": "≈2.4Ω (R=V²/P)",
+"c": "≈12Ω כי 12V/1A",
+"d": "≈6Ω כי 60W הוא גבוה"
+},
+"correct": "b",
+"explanation": "R=V²/P=144/60≈2.4Ω יספוג 60W ב-12V."
+},
+{
+"q": 41,
+"topic": "מנועים, גירים, סרוו ו-Encoders",
+"question": "השראות 6mH, אספקה 24V, PWM 10kHz, Duty 50%. מה ריפל הזרם בקירוב?",
+"options": {
+"a": "≈1A כי 24V גבוה",
+"b": "≈2A כי הזרם חוצה אפס בכל מחזור",
+"c": "≈0.2A (ΔI≈V/L·Ton, Ton≈50µs)",
+"d": "≈0 כי השראות מבטלת ריפל"
+},
+"correct": "c",
+"explanation": "Ton≈1/(2·10k)=50µs; ΔI≈(24/0.006)·50µs≈4000·50e-6≈0.2A."
+},
+{
+"q": 43,
+"topic": "מנועים, גירים, סרוו ו-Encoders",
+"question": "מנוע DC עם יעילות 80% מוזן ב-12V וצורך 1.5A. מהו ההספק המכני שהמנוע מייצר?",
+"options": {
+"a": "18W",
+"b": "22.5W",
+"c": "9.6W",
+"d": "14.4W"
+},
+"correct": "d",
+"explanation": "P_mech = eta × V × I = 0.8 × 12 × 1.5 = 14.4W."
+},
+{
+"q": 1,
+"topic": "מנועים, גירים, סרוו ו-Encoders",
+"question": "בשולחן אינדקסינג קטן נדרש סיבוב של °90 עם מנוע 28BYJ-48 (°5.625 לצעד פנימי, יחס גיר 63.7:1) במצב חצי-צעד (4096 צעדים להיקף ביציאה). כמה פולסי חצי-צעד יש לשלוח כדי לעמוד בדרישת דיוק של °1± ביציאה?",
+"options": {
+"a": "2048 פולסי חצי-צעד",
+"b": "512 פולסי חצי-צעד",
+"c": "1024 פולסי חצי-צעד",
+"d": "4096 פולסי חצי-צעד"
+},
+"correct": "c",
+"explanation": "1024 פולסים הם רבע ממחזור 4096 חצי-צעדים, ולכן מספקים °90 ביציאה במסגרת הדיוק."
+},
+{
+"q": 23,
+"topic": "מנועים, גירים, סרוו ו-Encoders",
+"question": "כדי להגדיר A4988 למצב microstepping 1/8, מה צריכה להיות הגדרת פיני MS1, MS2, MS3?",
+"options": {
+"a": "MS1=HIGH, MS2=HIGH, MS3=HIGH",
+"b": "MS1=HIGH, MS2=HIGH, MS3=LOW",
+"c": "MS1=LOW, MS2=HIGH, MS3=LOW",
+"d": "MS1=HIGH, MS2=LOW, MS3=LOW"
+},
+"correct": "b",
+"explanation": "נכון. הגדרה זו מפעילה microstepping 1/8 בדרייבר A4988."
+},
+{
+"q": 27,
+"topic": "מנועים, גירים, סרוו ו-Encoders",
+"question": "מעצב קובע שהמיפוי הוא °0=1000µs ו-°180=2000µs. מהו רוחב הפולס עבור °45 לצורך כיול מד חוגה?",
+"options": {
+"a": "1750µs",
+"b": "1125µs",
+"c": "1500µs",
+"d": "1250µs"
+},
+"correct": "d",
+"explanation": "המיפוי ליניארי: °45 הוא רבע הדרך, לכן 1250µs = 250µs + 1000µs."
+},
+{
+"q": 28,
+"topic": "מנועים, גירים, סרוו ו-Encoders",
+"question": "Servo במהירות 60°/0.12s נדרש לסובב קטע זרוע °120. מה זמן התנועה הצפוי לפני התייצבות (בהנחת עומס חריג)?",
+"options": {
+"a": "כ-0.10s כי זווית גדולה יותר מאיצה את המנוע",
+"b": "כ-1.20s בגלל מגבלת 50Hz",
+"c": "כ-0.60s כי המהירות לינארית לאורך כל הטווח",
+"d": "כ-0.24s ועוד זמן התייצבות קצר"
+},
+"correct": "d",
+"explanation": "0.12s לכל °60 ⇒ °120 הם כ-0.24s. ייתכן זמן קצר נוסף לייצוב חוג סגור."
+},
+{
+"q": 30,
+"topic": "מנועים, גירים, סרוו ו-Encoders",
+"question": "מהנדס מוסיף תנועה חלקה: 20 צעדים עם השהיה 20ms בין צעדים עבור שינוי מ-°30 ל-°150. האם זה עומד בדרישת זמן מעבר <0.6s, ומה ההסבר?",
+"options": {
+"a": "כן, 20×20ms=0.4s בסיסי ועוד זמן חוג פנימי קטן",
+"b": "לא, כי 20 צעדים תמיד ייקחו מעל 1s",
+"c": "לא, כי כל צעד דורש 50ms בשל מגבלת ספריית Servo",
+"d": "כן, אבל רק אם מעלים את תדר ה-PWM ל-400Hz"
+},
+"correct": "a",
+"explanation": "20 צעדים × 20ms ≈ 0.4s לפני תגובת החוג הפנימי, כך שעומדים בדרישת 0.6s."
+},
+{
+"q": 100,
+"topic": "מנועים, גירים, סרוו ו-Encoders",
+"question": "מפעיל שסתום פלדה במערכת קיטור דורש פתיחה של °90 ±2° לפי תקן בטיחות. הותקן Encoder אינקרמנטלי PPR 360 על ציר השסתום, ולאחר איפוס נספרו 90 פולסים. מה הזווית ומה המסקנה ביחס לדרישה?",
+"options": {
+"a": "°90 ועומד בדרישה",
+"b": "°90 ולא עומד בדרישה",
+"c": "°45 ועומד בדרישה",
+"d": "°180 ולא עומד בדרישה"
+},
+"correct": "a",
+"explanation": "הזווית מחושבת לפי θ=(pulse_count/PPR)×360. 90/360 מהסיבוב נותן °90, והוא בתוך תחום ±2°, לכן הדרישה מתקיימת."
+},
+{
+"q": 103,
+"topic": "מנועים, גירים, סרוו ו-Encoders",
+"question": "בהנעת משאבה תעשייתית, בעת הקצה העולה של A נמדד B=1. המהירות 600 סל\"ד וה-Encoder 600 PPR, ונדרש סימון כיוון לפי תקן תחזוקה. לפי Quadrature, מה הכיוון ומה שינוי הספירה?",
+"options": {
+"a": "עם כיוון השעון והספירה +1",
+"b": "נגד כיוון השעון והספירה -1",
+"c": "נגד כיוון השעון והספירה +1",
+"d": "עם כיוון השעון והספירה -1"
+},
+"correct": "b",
+"explanation": "כאשר A עולה ובאותו רגע B=1, הטבלה מגדירה כיוון נגד כיוון השעון. במעבר חוקי כזה הספירה קטנה ב-1-."
+},
+{
+"q": 104,
+"topic": "מנועים, גירים, סרוו ו-Encoders",
+"question": "מנוע אלומיניום מסתובב 2500 סל\"ד. Arduino UNO R4 יכול לטפל בכ-30,000 פסיקות/ש. משתמשים ב-Quadrature מלא (×4) לפי מפרט אמינות. מה ה-PPR המקסימלי המותר כדי לעמוד במגבלת הפסיקות?",
+"options": {
+"a": "≈600 PPR",
+"b": "≈1000 PPR",
+"c": "≈180 PPR",
+"d": "≈300 PPR"
+},
+"correct": "c",
+"explanation": "קצב הפסיקות הוא 4×PPR×rps. ב-2500 סל\"ד (≈41.67 rps) מתקבל PPR ≤ 30000/(41.67×4) ≈ 180."
+},
+{
+"q": 13,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "תגובה למדרגת מהירות מציגה Overshoot של 35% וזמן התייצבות 3 שניות, כאשר הדרישות הן Overshoot <10% וזמן התייצבות <2 שניות. כרגע Kp=3, Ki=1, Kd=0.05. איזה שינוי כיוונון הוא הסביר ביותר?",
+"options": {
+"a": "להשאיר את הפרמטרים ולשנות רק את ה-PPR",
+"b": "להגדיל Kp ו-Ki כדי להגביר מהירות תגובה",
+"c": "להקטין Kd לאפס ולהגדיל Ki",
+"d": "להפחית Kp ו-Ki ולהעלות Kd במידה מתונה"
+},
+"correct": "d",
+"explanation": "Overshoot גדול וזמן התייצבות ארוך מצביעים על תגובת יתר וחוסר ריסון. הקטנת Kp ו-Ki והגדלת Kd מוסיפות ריסון ומפחיתות חריגה."
+},
+{
+"q": 14,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "בניסוי תגובת מדרגה ל-100 סל״ד מתקבל: 90 סל״ד לאחר 0.4 ש׳, שיא 115 סל״ד, והתייצבות סביב 100±2 סל״ד לאחר 2.5 ש׳. הדרישות: Rise Time <0.5 ש׳, Settling Time <2 ש׳, Overshoot <10%. אילו דרישות מתקיימות?",
+"options": {
+"a": "כל הדרישות מתקיימות",
+"b": "רק דרישת Rise Time מתקיימת",
+"c": "Rise Time ו-Overshoot מתקיימות",
+"d": "רק Settling Time מתקיימת"
+},
+"correct": "b",
+"explanation": "Rise Time הוא 0.4 ש׳ ולכן עומד בדרישה. ה-Overshoot הוא 15% וה-Settling Time הוא 2.5 ש׳, שניהם חורגים מהמפרט."
+},
+{
+"q": 18,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "מנוע 1800 סל״ד עם Encoder 800 PPR נמדד במיקרו-בקר שבו זמן ISR הוא 6 µs והתקציב הוא 15% עומס CPU. נדרשת רזולוציה ≤0.5°. איזה מצב ספירה מתאים?",
+"options": {
+"a": "Polling כל 1 מ״ש",
+"b": "ספירה ×4 על שני הערוצים",
+"c": "ספירה ×1 על קצה אחד בערוץ A",
+"d": "ספירה ×2 על CHANGE בערוץ A"
+},
+"correct": "c",
+"explanation": "ב-1800 סל״ד מתקבלים 30 rps. ספירה ×1 נותנת 24,000 פסיקות/ש ועומס ≈14.4% עם רזולוציה 0.45°, שעומדת בדרישה; ×2 או ×4 חורגות מעומס ה-CPU."
+},
+{
+"q": 22,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "טורבינת רוח עם רדיוס להב 1.5 מ׳ מצוידת ב-Encoder של PPR 360 על ציר הטורבינה. נספרו 1800 פולסים בשנייה אחת. מה ה-RPM של הטורבינה, ואם יחס מהירות קצה (TSR) הוא 6, מה מהירות הרוח המשוערת?",
+"options": {
+"a": "300 RPM, מהירות רוח כ-7.85 m/s",
+"b": "150 RPM, מהירות רוח כ-3.9 m/s",
+"c": "600 RPM, מהירות רוח כ-7.85 m/s",
+"d": "300 RPM, מהירות רוח כ-15.7 m/s"
+},
+"correct": "a",
+"explanation": "RPM = (1800/360)*60 = 300. omega = 300*2*pi/60 = 31.4 rad/s. V_wind = omega*R/TSR = 31.4*1.5/6 ≈ 7.85 m/s."
+},
+{
+"q": 23,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "מסוע ביומסה עם גלגל הנעה בקוטר 100 מ״מ מצויד ב-Encoder של PPR 500. נספרו 250 פולסים ב-0.5 שניות. מה מהירות המסוע הליניארית, והאם היא בטווח הבטוח של 0.3-1.2 m/s?",
+"options": {
+"a": "≈0.157 m/s, מחוץ לטווח הבטוח",
+"b": "≈0.628 m/s, בטווח הבטוח",
+"c": "≈0.314 m/s, מחוץ לטווח הבטוח",
+"d": "≈0.314 m/s, בטווח הבטוח"
+},
+"correct": "d",
+"explanation": "מהירות = (250/500/0.5) * pi * 0.1 ≈ 0.314 m/s. בטווח 0.3-1.2."
+},
+{
+"q": 24,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "מערכת מעקב שמש (Solar Tracker) משתמשת ב-Encoder של PPR 600 על ציר פאנל סולארי. הפאנל צריך להגיע לזווית של 45.0° בדיוק של ±0.5°. מה הרזולוציה הזוויתית של ה-Encoder, והאם היא מספיקה לדרישה?",
+"options": {
+"a": "1.2° לפולס, לא מספיק לדרישה",
+"b": "0.6° לפולס, לא מספיק לדרישה",
+"c": "0.3° לפולס, מספיק לדרישה",
+"d": "0.6° לפולס, מספיק לדרישה"
+},
+"correct": "d",
+"explanation": "רזולוציה = 360/600 = 0.6°. דרישת הדיוק היא ±0.5° (טווח 1°). 0.6° < 1° ולכן מספיק."
+},
+{
+"q": 25,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "טורבינת רוח עם Encoder מגנטי (IP67) פועלת בסביבה ימית מלוחה עם רטיבות גבוהה. מהנדס מציע להחליף ל-Encoder אופטי (IP20) ברזולוציה גבוהה יותר. מה ההמלצה?",
+"options": {
+"a": "להחליף לאופטי - רזולוציה גבוהה חשובה יותר",
+"b": "לוותר על חיישן - להשתמש ב-Back-EMF בלבד",
+"c": "להישאר עם המגנטי - IP67 חיוני בסביבה ימית",
+"d": "להחליף לפוטנציומטר - פשוט יותר"
+},
+"correct": "c",
+"explanation": "נכון. Encoder אופטי IP20 לא מוגן מפני מים ולכלוך. בסביבה ימית חובה IP67 לפחות."
+},
+{
+"q": 26,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "במערכת מעקב שמש, ה-Encoder מודד 75 פולסים (PPR=600). מה הזווית הנוכחית של הפאנל? אם הזווית האופטימלית לשמש היא 50°, מה השגיאה?",
+"options": {
+"a": "זווית 90°, שגיאה 40°",
+"b": "זווית 45°, שגיאה 0°",
+"c": "זווית 45°, שגיאה 5°",
+"d": "זווית 50°, שגיאה 5°"
+},
+"correct": "c",
+"explanation": "θ = (75/600)*360 = 45°. שגיאה = 50° - 45° = 5°."
+},
+{
+"q": 27,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "בעגלת ניסוי עם גלגל פוליאוריתן בקוטר 10 ס״מ (סבילות ייצור ±0.1 ס״מ) נדרש להגיע ליעד של 16±1 ס״מ. ה-Encoder הוא PPR 500, ונספרו 250 פולסים. מה המרחק המחושב והאם עומדים ביעד?",
+"options": {
+"a": "≈15.7 ס״מ ולא עומד ביעד",
+"b": "≈31.4 ס״מ ועומד ביעד",
+"c": "≈8.0 ס״מ ולא עומד ביעד",
+"d": "≈15.7 ס״מ ועומד ביעד"
+},
+"correct": "d",
+"explanation": "מרחק מחושב לפי Distance=(pulse_count/PPR)×πD. 250/500 הוא חצי סיבוב, ולכן המרחק ≈0.5×31.4=15.7 ס״מ, בתוך 16±1."
+},
+{
+"q": 30,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "במסב מותרת מהירות עד 500 סל״ד לפי מפרט יצרן. Encoder של PPR 400 נספר 800 פולסים במשך 0.25 שניות בעת בדיקת מנוע פלדה. מה המהירות והאם עומדים במגבלה?",
+"options": {
+"a": "480 סל״ד ולא עומד במגבלה",
+"b": "240 סל״ד ועומד במגבלה",
+"c": "960 סל״ד ולא עומד במגבלה",
+"d": "480 סל״ד ועומד במגבלה"
+},
+"correct": "d",
+"explanation": "מספר הסיבובים הוא pulse_count/PPR=2, וחלוקה בזמן נותנת 8 סיבובים לשנייה שהם 480 סל״ד. זה נמוך מ-500 סל״ד ולכן המגבלה מתקיימת."
+},
+{
+"q": 31,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "במערכת מאמץ לציר, נמדד שבמהירות 1000 סל״ד הקצה העולה של ערוץ A מופיע 0.25 מ״ש לפני ערוץ B, והספירה נעשית לפי טבלת מצבים ב-Quadrature. מה הכיוון ומה שינוי הספירה?",
+"options": {
+"a": "לא ניתן לקבוע כיוון מהמידע",
+"b": "סיבוב עם כיוון השעון והספירה +1",
+"c": "סיבוב נגד כיוון השעון והספירה +1",
+"d": "סיבוב עם כיוון השעון והספירה -1"
+},
+"correct": "b",
+"explanation": "ב-Quadrature, כאשר A מוביל את B, הכיוון מוגדר כעם כיוון השעון. לפי טבלת המצבים, מעבר חוקי בכיוון זה מוסיף +1 לספירה."
+},
+{
+"q": 32,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "Encoder מכני על חוגת פולימר מייצר רעידות מגע למשך 2 מ״ש. החוגה מגיעה עד 300 סל״ד, וה-Encoder הוא PPR 24. נדרש לבחור זמן Debounce שימנע פולסים מזויפים אך לא יפספס פולסים תקינים. איזה ערך מתאים?",
+"options": {
+"a": "כ-1 מ״ש",
+"b": "כ-20 מ״ש",
+"c": "כ-10 מ״ש",
+"d": "כ-3 מ״ש"
+},
+"correct": "d",
+"explanation": "זמן Debounce צריך להיות גדול ממשך הרעידות (2 מ״ש) אך קצר מתקופת הפולס (~8.3 מ״ש). ערך של כ-3 מ״ש מסנן רעש מבלי להחמיץ פולסים."
+},
+{
+"q": 34,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "גלגל בקוטר 6.5 ס״מ עם Encoder 600 PPR מניע עגלה מאלומיניום. נמדדו 300 פולסים ב-0.1 שניות. מה המהירות הקווית והאם היא עומדת במגבלה של 1.2 מ׳/ש?",
+"options": {
+"a": "≈1.02 מ׳/ש ועומד במגבלה",
+"b": "≈1.02 מ׳/ש ולא עומד במגבלה",
+"c": "≈2.04 מ׳/ש ולא עומד במגבלה",
+"d": "≈0.51 מ׳/ש ועומד במגבלה"
+},
+"correct": "a",
+"explanation": "מהירות זוויתית היא 0.5 סיבוב ב-0.1 שניות = 5 סיבובים/ש. כפל בהיקף 0.204 מ׳ נותן ≈1.02 מ׳/ש, נמוך מהמגבלה."
+},
+{
+"q": 35,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "ביחידת תמסורת ביחס 5:1 (מנוע:פלט), מותקן Encoder 500 PPR על המנוע. דרישת התקן היא רזולוציית פלט ≤0.5°. האם המערכת עומדת בדרישה ומה הרזולוציה בפלט?",
+"options": {
+"a": "≈1.8° ועומד בדרישה",
+"b": "≈0.144° ועומד בדרישה",
+"c": "≈0.72° ולא עומד בדרישה",
+"d": "≈0.36° ולא עומד בדרישה"
+},
+"correct": "b",
+"explanation": "יחס תמסורת מגדיל את מספר הפולסים ביחס של 5, ולכן רזולוציית הפלט היא 360/(500×5)=0.144°. זה קטן מ-0.5° ולכן הדרישה מתקיימת."
+},
+{
+"q": 36,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "ציר פלדה מסתובב ב-1500 סל״ד, והבקר Arduino UNO R3 מסוגל לטפל בכ-10,000 פסיקות/ש בלבד מטעמי חום. משתמשים ב-Quadrature מלא (×4). מה ה-PPR המקסימלי המותר כדי לא לעבור את מגבלת הפסיקות?",
+"options": {
+"a": "עד כ-PPR 250",
+"b": "עד כ-PPR 100",
+"c": "עד כ-PPR 1000",
+"d": "עד כ-PPR 400"
+},
+"correct": "b",
+"explanation": "מספר הפסיקות לשנייה הוא 4×PPR×rps. ב-25 סיבובים/ש מתקבל 25×4×PPR ≤ 10,000 ולכן PPR ≤ 100."
+},
+{
+"q": 1,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "בתנור טיפול תרמי לפלדה, התקן מאפשר סטייה של עד ±2°C סביב 200°C. החיישן מודד 185°C, ובקר P בלבד עם Kp=0.8 (%/°C) מחשב u=Kp·e. מהו אות הבקרה ומה פירושו מבחינת ההספק?",
+"options": {
+"a": "12% חימום (העלאת ההספק)",
+"b": "12% קירור",
+"c": "0% כי הסטייה בתוך התקן",
+"d": "12%- חימום (כלומר הורדת הספק)"
+},
+"correct": "a",
+"explanation": "השגיאה היא 15°C ולכן 12=15·0.8=u. אות חיובי מגביר חימום כדי להתקרב ליעד."
+},
+{
+"q": 2,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "תנור פולימרים עם קבוע זמן 25 s, רעש חיישן ±0.3°C, דרישה ל-SSE <0.5°C ואוברשוט <5°C. רכיב D מגביר רעש ומאיץ שחיקת ממסר. איזה בקר מתאים ביותר?",
+"options": {
+"a": "PID עם Kd גבוה",
+"b": "PI",
+"c": "P",
+"d": "On/Off"
+},
+"correct": "b",
+"explanation": "במערכת תרמית איטית נדרש I כדי לבטל SSE, אך רכיב D יגביר רעש ויגרום לפעולה לא יציבה של הממסר. לכן PI נותן איזון נכון בין דיוק ועמידות לרעש."
+},
+{
+"q": 6,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "בקר PI בחימום: שגיאה קבועה של 2°C נמשכת 10 s, dt=1 s. רוצים שרכיב I יוסיף 20% הספק בסוף התקופה. מהו Ki הנדרש (ב-%/°C·s)?",
+"options": {
+"a": "0.5",
+"b": "2.0",
+"c": "5.0",
+"d": "1.0"
+},
+"correct": "d",
+"explanation": "האינטגרל המצטבר הוא 20 = 2·10 = Σe·dt, ולכן Ki=20%/20=1%/°C·s. כך בתוך 10 s מתקבלת תרומת I של 20% כפי שנדרש."
+},
+{
+"q": 7,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "חיישן טמפרטורה רעש ±0.3°C, dt=0.05 s. כדי שמרכיב D לא יעלה תנודות הספק מעבר ל-±10%, מהו Kd המקסימלי?",
+"options": {
+"a": "0.5",
+"b": "2.5",
+"c": "3.0",
+"d": "1.5"
+},
+"correct": "d",
+"explanation": "רעש של ±0.3°C עם dt=0.05 גורם לנגזרת רעש של ±6°C/s, ולכן D=Kd·6. כדי להגביל ל-±10% צריך Kd≤1.67, והערך המתאים מבין האפשרויות הוא 1.5."
+},
+{
+"q": 11,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "במערכת מיקום של מנגנון הרמה, הערך מגיע ל-10% מהיעד ב-0.4 s ול-90% ב-1.6 s. מהו Rise Time?",
+"options": {
+"a": "1.6 s",
+"b": "1.2 s",
+"c": "2.0 s",
+"d": "0.4 s"
+},
+"correct": "b",
+"explanation": "Rise Time מוגדר כ-t90%-t10%, ולכן 1.2=1.6-0.4 s. המדד מתאר את מהירות העלייה הראשונית של המערכת."
+},
+{
+"q": 13,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "מערכת לחץ דורשת יעד 200 kPa ונמדד מקסימום 230 kPa. מהו אחוז האוברשוט ומה הפעולה המתאימה ביותר לצמצומו בלי לפגוע ב-SSE?",
+"options": {
+"a": "15% ולהגדיל Ki",
+"b": "15% ולהגדיל Kd",
+"c": "10% ולהקטין Kd",
+"d": "5% ולהשאיר כוונון"
+},
+"correct": "b",
+"explanation": "האוברשוט הוא (230-200)/200=15%, ולכן הוא חורג מהתקן. הגדלת Kd מוסיפה בלימה שמפחיתה את החריגה ללא פגיעה ב-SSE."
+},
+{
+"q": 14,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "במערכת ברוויה, השגיאה קבועה 40 יחידות, dt=0.1 s, Ki=0.4. ללא Anti-Windup, אחרי כמה זמן תרומת I תגיע ל-50 יחידות (בערך)?",
+"options": {
+"a": "כ-12 s",
+"b": "כ-1 s",
+"c": "כ-6 s",
+"d": "כ-3 s"
+},
+"correct": "d",
+"explanation": "תרומת האינטגרל גדלה ב-1.6 בכל צעד (0.4·40·0.1=1.6), ולכן כדי להגיע ל-50 נדרשים כ-31 צעדים שהם כ-3.1 s. זה ממחיש כיצד windup יכול להיווצר במהירות בעת רוויה."
+},
+{
+"q": 16,
+"topic": "Encoders, מהירות ובקרת PID",
+"question": "בבקרת מהירות מנוע, עומס פתאומי של 5 N·m גורם לירידה במהירות. כיוונון A (Kp=1.2, Ki=0, Kd=0) מתאושש ב-10 s עם SSE 8 rpm. כיוונון B (Kp=1.2, Ki=0.08, Kd=0) מתאושש ב-6 s עם אוברשוט 7%. כיוונון C (Kp=1.2, Ki=0.08, Kd=3) מתאושש ב-3 s עם אוברשוט 2% ו-SSE 0. איזה כיוונון עומד בדרישות התאוששות <4 s ואוברשוט <3%?",
+"options": {
+"a": "אף אחד",
+"b": "כיוונון B",
+"c": "כיוונון A",
+"d": "כיוונון C"
+},
+"correct": "d",
+"explanation": "הכיוונון עם Ki ו-Kd (C) מבטל SSE, מקצר התאוששות ל-3 s ומפחית אוברשוט ל-2%. הניסויים האחרים חורגים בזמן או באוברשוט."
+},
+{
+"q": 18,
+"topic": "בקרת PID ומכונות מצבים (FSM)",
+"question": "במערכת קירור אלקטרוניקה: SP=60°C, PV=68°C, e_prev=-5°C, dt=0.2 s, Kp=1.5, Kd=0.4. מהו אות הבקרה P+D?",
+"options": {
+"a": "18",
+"b": "-18",
+"c": "-12",
+"d": "-6"
+},
+"correct": "b",
+"explanation": "השגיאה היא -8 ולכן P=-12. הנגזרת היא (-8+5)/0.2=-15 ולכן D=-6, וסכום P+D הוא -18."
+},
+{
+"q": 20,
+"topic": "בקרת PID ומכונות מצבים (FSM)",
+"question": "במערכת PI: e=6 במשך 5 צעדים, dt=0.2 s, Ki=0.5, ו-integral_limit=4. מהי תרומת I לאחר 5 צעדים עם Anti-Windup?",
+"options": {
+"a": "3",
+"b": "1",
+"c": "2",
+"d": "6"
+},
+"correct": "c",
+"explanation": "ללא הגבלה מתקבל Integral=6, אך עם integral_limit=4 הערך נחתך ולכן I=0.5·4=2. זה מונע צבירה עודפת שמובילה לאוברשוט."
+},
+{
+"q": 23,
+"topic": "בקרת PID ומכונות מצבים (FSM)",
+"question": "זרוע רובוטית נדרשת להגיע ל-30°- עם אוברשוט מרבי של 3% כדי לא לפגוע במעצור מכני. בכיוון הנוכחי מתקבל אוברשוט של 10% אך שגיאת מצב יציב אפסית. איזה שינוי פרמטרי הוא הישיר ביותר לצמצום האוברשוט בלי לפגוע בדיוק?",
+"options": {
+"a": "להגדיל Kd",
+"b": "להגדיל את גבול האינטגרל (integral_limit)",
+"c": "להגדיל Ki",
+"d": "להגדיל Kp"
+},
+"correct": "a",
+"explanation": "רכיב D מוסיף בלימה פרופורציונלית לקצב שינוי השגיאה ולכן מפחית אוברשוט. שינוי Ki או Kp עלול להגדיל חריגה או להשפיע בעיקר על SSE."
+},
+{
+"q": 24,
+"topic": "בקרת PID ומכונות מצבים (FSM)",
+"question": "בקר PID שולט במיקום סרוו. בטווח הדגימה dt=0.1 s התקבלו e[n-1]=8 ו-e[n]=-5 (במעלות). עם Kd=0.2, מה ערך תרומת D?",
+"options": {
+"a": "6",
+"b": "0.6",
+"c": "-6",
+"d": "-0.6"
+},
+"correct": "c",
+"explanation": "הנגזרת היא (5-8)/0.1=-30 ולכן D=0.2·(-30)=-6. ערך שלילי מציין שהשגיאה קטנה במהירות ולכן הבקר מפחית את האות."
+},
+{
+"q": 27,
+"topic": "בקרת PID ומכונות מצבים (FSM)",
+"question": "בבקר בדיד עם dt=0.05 s הוגדר Ki כך שהתגובה יציבה. עקב עומס חישובי dt הוכפל ל-0.1 s, אך רוצים לשמור על אותה עוצמת אינטגרל. כיצד יש לעדכן את Ki?",
+"options": {
+"a": "להשאיר Ki ללא שינוי",
+"b": "להגדיל Ki פי 2",
+"c": "לאפס את Kd",
+"d": "להקטין Ki"
+},
+"correct": "d",
+"explanation": "באינטגרל בדיד התרומה היא Σe·dt·Ki ולכן הגדלת dt מגדילה את תרומת I. כדי לשמור על אותה השפעה יש להקטין את Ki בחצי ביחס הפוך."
+},
+{
+"q": 29,
+"topic": "בקרת PID ומכונות מצבים (FSM)",
+"question": "בקרת מיקום על מסילה: יעד 100 mm, נמדד מקסימום 112 mm. התקן מאפשר אוברשוט עד 5% כדי למנוע פגיעה במעצור. שגיאת מצב יציב אפסית. איזה שינוי צפוי להקטין אוברשוט בלי לפגוע ב-SSE?",
+"options": {
+"a": "להסיר רכיב I",
+"b": "להגדיל Kp",
+"c": "להגדיל Ki",
+"d": "להגדיל Kd"
+},
+"correct": "d",
+"explanation": "אוברשוט של 12% חורג מהתקן ולכן נדרש דיכוי תנודות. הגדלת Kd מוסיפה בלימה דינמית ומקטינה חריגה מבלי להחזיר SSE."
+},
+{
+"q": 30,
+"topic": "בקרת PID ומכונות מצבים (FSM)",
+"question": "בקרת מפלס בנוזל עם קבוע זמן 30~ s, דרישת דיוק: SSE <0.2%. החיישן רועש במקצת, והתקן מאפשר אוברשוט של עד 5%. איזה סוג בקר מתאים ביותר?",
+"options": {
+"a": "PID",
+"b": "PI",
+"c": "P",
+"d": "On/Off"
+},
+"correct": "b",
+"explanation": "במערכת איטית חשוב לבטל שגיאת מצב יציב, ולכן נדרש רכיב I. רכיב D פחות נחוץ ומגביר רגישות לרעש, לכן PI הוא הבחירה המתאימה."
+},
+{
+"q": 32,
+"topic": "בקרת PID ומכונות מצבים (FSM)",
+"question": "בציר ליניארי נדרשים: Overshoot<3%, Settling Time<2 s ו-SSE<1 mm. ניסוי A: Rise 1.2 s, Overshoot 12%, Settling 4 s, SSE 0. ניסוי B: Rise 1.6 s, Overshoot 2%, Settling 1.8 s, SSE 0.5 mm. איזה כיוון עומד בדרישות?",
+"options": {
+"a": "שניהם",
+"b": "A בלבד",
+"c": "B בלבד",
+"d": "אף אחד"
+},
+"correct": "c",
+"explanation": "ניסוי B עומד בכל הקריטריונים: אוברשוט 2%, זמן התייצבות 1.8 s ו-SSE 0.5 mm. ניסוי A נכשל באוברשוט ובזמן ההתייצבות."
+},
+{
+"q": 34,
+"topic": "בקרת PID ומכונות מצבים (FSM)",
+"question": "בקר PID עם סינון EMA לנגזרת: raw_derivative=25 °C/s, filtered_prev=5 °C/s, α=0.2, Kd=2. מה תרומת D לאחר הסינון?",
+"options": {
+"a": "10",
+"b": "30",
+"c": "18",
+"d": "50"
+},
+"correct": "c",
+"explanation": "הנגזרת המסוננת היא 0.2·25 + 0.8·5 = 9 ולכן D=2·9=18. הסינון מפחית רעש תוך שמירה על בלימה."
+},
+{
+"q": 35,
+"topic": "בקרת PID ומכונות מצבים (FSM)",
+"question": "מערכת מיקום עם רעש מדידה 0.1± mm. הורדת dt מ-0.1 s ל-0.05 s הכפילה את רעש הנגזרת. אם רוצים לשמור על אותה תנודת תרומת D, מה יש לעשות ל-Kd?",
+"options": {
+"a": "להשאיר Kd ללא שינוי",
+"b": "להגדיל Kd פי 2",
+"c": "להגדיל Ki",
+"d": "להקטין Kd"
+},
+"correct": "d",
+"explanation": "בגלל שהנגזרת פרופורציונלית ל-1/dt, חציית dt מכפילה את תרומת D עבור אותו רעש. לכן יש להקטין את Kd בחצי כדי לשמור על אותה תנודת אות."
+},
+{
+"q": 39,
+"topic": "בקרת PID ומכונות מצבים (FSM)",
+"question": "במערכת חימום error=30°C למשך 5 s, dt=0.1 s, Ki=0.4, integral_limit=50. מה תרומת I לאחר 5 s כאשר Anti-Windup פעיל?",
+"options": {
+"a": "6",
+"b": "150",
+"c": "20",
+"d": "60"
+},
+"correct": "c",
+"explanation": "עם Anti-Windup האינטגרל נחתך ל-50, ולכן I=0.4·50=20. ללא הגבלה היה מתקבל ערך גדול בהרבה שגורם לאוברשוט."
+},
+{
+"q": 3,
+"topic": "בקרת PID ומכונות מצבים (FSM)",
+"question": "במערכת אזעקה שבה ALERT נמשך 60s לפי תקן, עברו 45s מאז זיהוי תנועה. מה מצב ה-FSM כעת?",
+"options": {
+"a": "COUNTDOWN",
+"b": "ARMED",
+"c": "DISARMED",
+"d": "ALERT"
+},
+"correct": "d",
+"explanation": "מצב ALERT נשמר עד שהזמן המצטבר מגיע ל-60s. לאחר 45s המערכת עדיין ב-ALERT. רק לאחר 60s היא חוזרת ל-ARMED."
+},
+{
+"q": 10,
+"topic": "בקרת PID ומכונות מצבים (FSM)",
+"question": "ברובוט מעקב קו עם קו רוחב 30mm מתקבל L=1, C=1, R=1. כדי למנוע עומס צידי על שלדת פלדה, מה מצב ה-FSM לפי הטבלה במדריך?",
+"options": {
+"a": "TURN_RIGHT",
+"b": "TURN_LEFT",
+"c": "LOST",
+"d": "FORWARD"
+},
+"correct": "d",
+"explanation": "כאשר כל החיישנים מזהים קו, הטבלה במדריך קובעת המשך קדימה. זה מתאים לקו רחב ומונע תיקון חד. כך נשמרת יציבות מכנית."
+},
+{
+"q": 14,
+"topic": "בקרת PID ומכונות מצבים (FSM)",
+"question": "בממשק Web, פקודת stop מאופיינת כעצירת מנועים בלבד בעוד reset מאפס גם חיישן. לפי דרישת תקן יש לנקות גם קריאת חיישן לאחר אירוע חריג. איזה endpoint צריך להיקרא?",
+"options": {
+"a": "stop",
+"b": "status",
+"c": "reset",
+"d": "index"
+},
+"correct": "c",
+"explanation": "במדריך stop מאפס motor אך משאיר sensor, בעוד reset מאפס גם sensor וגם motor. לכן דרישה לניקוי קריאת חיישן מחייבת שימוש ב-reset. זה מבטיח מצב נקי לאחר אירוע חריג."
+},
+{
+"q": 20,
+"topic": "בקרת PID ומכונות מצבים (FSM)",
+"question": "במערכת אזעקה ALERT נמשך 60s. עברו 70s ללא DISARM. המנגנון צריך לשוב לניטור כדי לעמוד בדרישת כיסוי של 95% בזמן. מה מצב ה-FSM הנכון?",
+"options": {
+"a": "COUNTDOWN",
+"b": "ALERT",
+"c": "ARMED",
+"d": "DISARMED"
+},
+"correct": "c",
+"explanation": "לפי הקוד, לאחר ש-ALERT נמשך 60s המערכת חוזרת ל-ARMED. לכן אחרי 70s היא אמורה להיות שוב במצב ניטור. זה שומר על כיסוי גבוה בזמן."
+},
+{
+"q": 27,
+"topic": "בקרת PID ומכונות מצבים (FSM)",
+"question": "נתון קוד Arduino הבא עם FSM:\nenum State { IDLE, FORWARD, TURN_LEFT, TURN_RIGHT, STOP };\nState currentState = IDLE;\nvoid loop() {\n  int L = digitalRead(2); // Left sensor\n  int C = digitalRead(3); // Center sensor\n  int R = digitalRead(4); // Right sensor\n  switch(currentState) {\n    case IDLE:\n      if(C) currentState = FORWARD;\n      break;\n    case FORWARD:\n      if(!C && L) currentState = TURN_LEFT;\n      else if(!C && R) currentState = TURN_RIGHT;\n      else if(!C && !L && !R) currentState = STOP;\n      break;\n    case TURN_LEFT:\n      if(C) currentState = FORWARD;\n      break;\n    case TURN_RIGHT:\n      if(C) currentState = FORWARD;\n      break;\n    case STOP:\n      break;\n  }\n}\nהמערכת מתחילה ב-IDLE. רצף הקריאות הוא: (L=0,C=1,R=0), (L=0,C=0,R=1), (L=0,C=1,R=0). מהו המצב לאחר שלוש איטרציות?",
+"options": {
+"a": "TURN_RIGHT",
+"b": "STOP",
+"c": "IDLE",
+"d": "FORWARD"
+},
+"correct": "d",
+"explanation": "IDLE->(C=1)->FORWARD->(!C,R=1)->TURN_RIGHT->(C=1)->FORWARD."
+},
+{
+"q": 29,
+"topic": "בקרת PID ומכונות מצבים (FSM)",
+"question": "נתון קוד Arduino:\nenum State { S_OFF, S_HEAT, S_COOL, S_ERROR };\nState st = S_OFF;\nfloat temp;\nvoid loop() {\n  temp = readTemp();\n  switch(st) {\n    case S_OFF:\n      if(temp < 18.0) st = S_HEAT;\n      else if(temp > 28.0) st = S_COOL;\n      break;\n    case S_HEAT:\n      if(temp >= 22.0) st = S_OFF;\n      if(temp > 50.0) st = S_ERROR;\n      break;\n    case S_COOL:\n      if(temp <= 24.0) st = S_OFF;\n      break;\n    case S_ERROR: break;\n  }\n}\nרצף הטמפרטורות: 15.0, 22.0, 30.0, 24.0. מהו המצב אחרי 4 איטרציות?",
+"options": {
+"a": "S_ERROR",
+"b": "S_OFF",
+"c": "S_COOL",
+"d": "S_HEAT"
+},
+"correct": "b",
+"explanation": "S_OFF->S_HEAT->S_OFF->S_COOL->S_OFF"
+},
+{
+"q": 40,
+"topic": "בקרת PID ומכונות מצבים (FSM)",
+"question": "מערכת חימום עם תמסורת פלדה דורשת שינוי מצב רק אם עברו לפחות 0.5s כדי למנוע עומס תרמי. נמדדו last_time=12.30s ו-current_time=12.74s. האם יש לבצע פעולה כעת?",
+"options": {
+"a": "לא, עברו רק 0.44s ולכן לא עבר המרווח הנדרש.",
+"b": "כן, כל עוד הזמן שונה מ-last_time מבצעים פעולה.",
+"c": "כן, כי 12.74 גדול מ-12.30 ולכן תמיד צריך פעולה.",
+"d": "לא, כי יש להשוות רק עם == כדי לקבל דיוק."
+},
+"correct": "a",
+"explanation": "תזמון לא-חוסם בודק elapsed = current - last. כאן elapsed=0.44s ולכן קטן מה-0.5s הנדרש. התנאי הנכון הוא elapsed >= interval."
+}
+];
+
+/* ---------- state ---------- */
+let mode = "practice";
+let order = [];        // array of question objects (possibly shuffled), each with shuffled option keys
+let cur = 0;
+let answers = [];      // chosen key per question (null if unanswered)
+
+const $ = id => document.getElementById(id);
+document.addEventListener("DOMContentLoaded", () => {
+  $("qcount").textContent = QUESTIONS.length;
+
+  // mode segmented control
+  $("modeSeg").addEventListener("click", e => {
+    const b = e.target.closest("button"); if(!b) return;
+    [...$("modeSeg").children].forEach(x=>x.classList.remove("active"));
+    b.classList.add("active"); mode = b.dataset.mode;
+    $("startBtn").textContent = mode==="exam" ? "התחל מבחן ▸" : "התחל תרגול ▸";
+  });
+
+  $("startBtn").onclick = () => start(QUESTIONS.slice());
+  $("prevBtn").onclick = () => { if(cur>0){cur--;render();} };
+  $("nextBtn").onclick = onNext;
+  $("againBtn").onclick = () => { showStart(); };
+  $("retryWrongBtn").onclick = retryWrong;
+  document.querySelectorAll(".filterbtns .chip").forEach(c=>{
+    c.onclick=()=>{document.querySelectorAll(".filterbtns .chip").forEach(x=>x.classList.remove("active"));c.classList.add("active");renderReview(c.dataset.f);};
+  });
+  document.addEventListener("keydown", onKey);
+});
+
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function start(pool){
+  let qs = pool.map(q=>{
+    const keys = Object.keys(q.options);
+    const ord = $("shuffleA").checked ? shuffle(keys) : keys;
+    return {...q, _order: ord};
+  });
+  if($("shuffleQ").checked) qs = shuffle(qs);
+  order = qs;
+  answers = new Array(order.length).fill(null);
+  cur = 0;
+  $("total").textContent = order.length;
+  $("start").classList.add("hidden");
+  $("results").classList.add("hidden");
+  $("quiz").classList.remove("hidden");
+  render();
+}
+
+function render(){
+  const q = order[cur];
+  $("curIdx").textContent = cur+1;
+  $("progFill").style.width = ((cur)/order.length*100)+"%";
+  $("qOrigNum").textContent = q.topic ? ("📂 " + q.topic) : ("שאלה " + q.q);
+  const qt = $("qText");
+  qt.textContent = q.question;
+  qt.classList.toggle("code", /\n/.test(q.question));
+  $("scoreNow").textContent = scoreCount();
+
+  const wrap = $("opts"); wrap.innerHTML="";
+  const chosen = answers[cur];
+  const answered = chosen !== null;
+  q._order.forEach((key,i)=>{
+    const btn = document.createElement("button");
+    btn.className="option"; btn.dataset.key=key;
+    btn.innerHTML = `<span class="key">${i+1}</span><span class="otext">${esc(q.options[key])}</span><span class="mark"></span>`;
+    if(answered && mode==="practice"){
+      btn.disabled=true;
+      if(key===q.correct){btn.classList.add("correct");btn.querySelector(".mark").textContent="✓";}
+      if(key===chosen && chosen!==q.correct){btn.classList.add("wrong");btn.querySelector(".mark").textContent="✗";}
+    } else if(answered && mode==="exam"){
+      if(key===chosen){btn.classList.add("chosen");}
+    }
+    btn.onclick = ()=>choose(key);
+    wrap.appendChild(btn);
+  });
+
+  // explanation (practice only, after answering)
+  const ex = $("explain");
+  ex.className="explain";
+  if(answered && mode==="practice"){
+    const ok = chosen===q.correct;
+    ex.classList.add("show"); if(!ok) ex.classList.add("miss");
+    const head = ok ? "✓ נכון!" : "✗ לא נכון";
+    const corrText = q.options[q.correct];
+    ex.innerHTML = `<b>${head}</b>${ok?"":`התשובה הנכונה: <b style="display:inline">${esc(corrText)}</b><br>`}${esc(q.explanation||"")}`;
+  }
+
+  $("prevBtn").disabled = cur===0;
+  $("nextBtn").textContent = cur===order.length-1 ? "סיום ▸" : "הבא ▸";
+}
+
+function choose(key){
+  if(mode==="practice" && answers[cur]!==null) return; // lock after answer in practice
+  answers[cur]=key;
+  render();
+}
+
+function onNext(){
+  // require an answer before advancing? allow skip but warn lightly
+  if(cur===order.length-1){ finish(); }
+  else { cur++; render(); }
+}
+
+function onKey(e){
+  if(!$("quiz").classList.contains("hidden")){
+    const q=order[cur];
+    if(["1","2","3","4","5"].includes(e.key)){
+      const idx=+e.key-1; if(idx<q._order.length) choose(q._order[idx]);
+    } else if(e.key==="Enter"){ onNext(); }
+    else if(e.key==="ArrowLeft"){ onNext(); }
+    else if(e.key==="ArrowRight"){ if(cur>0){cur--;render();} }
+  }
+}
+
+function scoreCount(){return order.reduce((n,q,i)=>n+(answers[i]===q.correct?1:0),0);}
+
+function finish(){
+  const total=order.length, correct=scoreCount(), pct=Math.round(correct/total*100);
+  $("quiz").classList.add("hidden");
+  $("results").classList.remove("hidden");
+  $("ring").style.setProperty("--p",pct);
+  $("pct").textContent=pct+"%";
+  $("resTitle").textContent = `${correct} מתוך ${total} נכון`;
+  let msg = pct>=90?"מצוין! אתה מוכן 🎯":pct>=75?"כל הכבוד, עוד קצת חזרה 👍":pct>=50?"לא רע — שווה לחזור על הטעויות 📚":"כדאי לחזור על החומר 💪";
+  $("resSub").textContent=msg;
+  renderReview("all");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function renderReview(filter){
+  const list=$("reviewList"); list.innerHTML="";
+  order.forEach((q,i)=>{
+    const chosen=answers[i], ok=chosen===q.correct;
+    if(filter==="wrong"&&ok) return;
+    if(filter==="right"&&!ok) return;
+    const div=document.createElement("div");
+    div.className="rev-item "+(ok?"ok":"no");
+    const yourTxt = chosen===null ? "— (לא נענה)" : esc(q.options[chosen]);
+    div.innerHTML =
+      `<div class="rev-q">${i+1}. ${esc(q.question)}</div>`+
+      `<div class="rev-line ${ok?'you-ok':'you-no'}"><span class="tag">תשובתך:</span> ${yourTxt} ${ok?"✓":"✗"}</div>`+
+      (ok?"":`<div class="rev-line you-ok"><span class="tag">הנכונה:</span> ${esc(q.options[q.correct])} ✓</div>`)+
+      (q.explanation?`<div class="rev-exp">${esc(q.explanation)}</div>`:"");
+    list.appendChild(div);
+  });
+  if(!list.children.length) list.innerHTML='<p style="color:var(--muted)">אין פריטים להצגה.</p>';
+}
+
+function retryWrong(){
+  const wrong = order.filter((q,i)=>answers[i]!==q.correct);
+  if(!wrong.length){ alert("אין טעויות — כל הכבוד! 🎉"); return; }
+  start(wrong); // each item already carries its question + options; start() re-shuffles options
+}
+
+function showStart(){
+  $("results").classList.add("hidden");
+  $("quiz").classList.add("hidden");
+  $("start").classList.remove("hidden");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+// --- TABS LOGIC ---
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.target).classList.add("active");
+    
+    if(btn.dataset.target === "view-flashcards" && !window.fcInitialized) {
+      renderFlashcards();
+      window.fcInitialized = true;
+    }
+    if(btn.dataset.target === "view-memory" && !window.memInitialized) {
+      renderMemLevels();
+      window.memInitialized = true;
+    }
+  });
+});
+
+// --- FLASHCARDS LOGIC ---
+let fcPage = 0;
+const fcPerPage = 4;
+
+function renderFlashcards() {
+  const grid = $("fcGrid");
+  grid.innerHTML = "";
+  const start = fcPage * fcPerPage;
+  const end = Math.min(start + fcPerPage, QUESTIONS.length);
+  
+  for (let i = start; i < end; i++) {
+    const q = QUESTIONS[i];
+    const div = document.createElement("div");
+    div.className = "fc-card";
+    div.innerHTML = `
+      <div class="fc-q">שאלה ${i+1}: ${esc(q.question)}</div>
+      <div class="fc-a">✓ ${esc(q.options[q.correct])}</div>
+    `;
+    grid.appendChild(div);
+  }
+  
+  const totalPages = Math.ceil(QUESTIONS.length / fcPerPage);
+  $("fcPageInfo").textContent = `עמוד ${fcPage + 1} מתוך ${totalPages}`;
+  $("fcPrevBtn").disabled = fcPage === 0;
+  $("fcNextBtn").disabled = fcPage >= totalPages - 1;
+}
+
+$("fcPrevBtn").addEventListener("click", () => { if(fcPage > 0) { fcPage--; renderFlashcards(); }});
+$("fcNextBtn").addEventListener("click", () => { if(fcPage < Math.ceil(QUESTIONS.length/fcPerPage)-1) { fcPage++; renderFlashcards(); }});
+
+// --- MEMORY GAME LOGIC ---
+const MEM_LEVELS = 10;
+let memProgress = JSON.parse(localStorage.getItem("roboMemProgress") || "{}");
+let memBestScores = JSON.parse(localStorage.getItem("roboMemBest") || "{}");
+let memCurrentLevel = 1;
+let memCards = [];
+let memFirstCard = null;
+let memMatches = 0;
+let memMoves = 0;
+let memBoardLocked = false;
+let memIsPreview = false;
+let memRevealed = false;
+
+function renderMemLevels() {
+  const container = $("memLevelsContainer");
+  container.innerHTML = "";
+  
+  for(let i=1; i<=MEM_LEVELS; i++) {
+    const btn = document.createElement("div");
+    
+    const streak = memProgress[i] || 0;
+    const best = memBestScores[i] || "-";
+    const prevStreak = i===1 ? 3 : (memProgress[i-1] || 0);
+    const isUnlocked = i===1 || prevStreak >= 3;
+    
+    btn.className = "mem-lvl-btn" + (isUnlocked ? " unlocked" : "");
+    btn.style.height = "auto";
+    btn.style.padding = "10px";
+    
+    if(isUnlocked) {
+      btn.innerHTML = `
+        <div style="font-size:1.5rem">${i}</div>
+        <div class="mem-lvl-prog" style="margin-top:4px;" title="רצף הצלחות">רצף: ${streak}/3</div>
+        <div class="mem-lvl-prog" style="color:var(--accent); font-size:0.75rem;" title="שיא ניסיונות">שיא: ${best}</div>
+      `;
+      btn.onclick = () => startMemoryLevel(i);
+    } else {
+      btn.innerHTML = `<div style="font-size:1.5rem">🔒</div><div class="mem-lvl-prog" style="margin-top:4px;color:var(--muted)">נעול</div>`;
+    }
+    container.appendChild(btn);
+  }
+}
+
+function startMemoryLevel(level) {
+  memCurrentLevel = level;
+  memMatches = 0;
+  memMoves = 0;
+  memFirstCard = null;
+  memBoardLocked = false;
+  memIsPreview = true;
+  memRevealed = false;
+  $("memMatches").textContent = "0";
+  $("memMoves").textContent = "0";
+  $("memLevelTitle").textContent = `שלב ${level}`;
+  
+  $("memPlayBtn").classList.remove("hidden");
+  $("memRevealBtn").classList.add("hidden", "ghost");
+  $("memRevealBtn").textContent = "👀 הצג הכל";
+  
+  const qCount = QUESTIONS.length;
+  const memPerLevel = Math.floor(qCount / MEM_LEVELS);
+  const startIndex = (level - 1) * memPerLevel;
+  const endIndex = level === MEM_LEVELS ? qCount : startIndex + memPerLevel;
+  const levelQs = QUESTIONS.slice(startIndex, endIndex);
+  
+  memCards = [];
+  
+  // Arrange in Preview format: Question on top, Answer below it (in a 4-col grid)
+  for (let chunk = 0; chunk < levelQs.length; chunk += 4) {
+    const chunkQs = levelQs.slice(chunk, chunk + 4);
+    chunkQs.forEach((q, idx) => memCards.push({ type: 'q', text: q.question, id: chunk + idx }));
+    chunkQs.forEach((q, idx) => memCards.push({ type: 'a', text: q.options[q.correct], id: chunk + idx }));
+  }
+  
+  renderMemBoard();
+  
+  $("mem-level-select").classList.add("hidden");
+  $("mem-game-area").classList.remove("hidden");
+}
+
+$("memPlayBtn").addEventListener("click", () => {
+  memIsPreview = false;
+  $("memPlayBtn").classList.add("hidden");
+  $("memRevealBtn").classList.remove("hidden");
+  memCards = shuffle(memCards);
+  renderMemBoard();
+});
+
+$("memRevealBtn").addEventListener("click", () => {
+  memRevealed = !memRevealed;
+  $("memRevealBtn").textContent = memRevealed ? "🙈 הסתר הכל" : "👀 הצג הכל";
+  $("memRevealBtn").classList.toggle("ghost", !memRevealed);
+  
+  const cards = document.querySelectorAll(".mem-card");
+  cards.forEach(el => {
+    if(el.classList.contains("matched")) return;
+    const idx = el.dataset.idx;
+    const card = memCards[idx];
+    if(memRevealed) {
+      el.classList.remove("hidden-content");
+      el.textContent = (card.type === 'q' ? "שאלה:\n" : "תשובה:\n") + card.text;
+    } else {
+      if (!el.classList.contains("selected")) {
+        el.textContent = "";
+        el.classList.add("hidden-content");
+      }
+    }
+  });
+});
+
+function renderMemBoard() {
+  const board = $("memBoard");
+  board.innerHTML = "";
+  
+  memCards.forEach((card, i) => {
+    const div = document.createElement("div");
+    if (memIsPreview || memRevealed) {
+      div.className = "mem-card";
+      div.textContent = (card.type === 'q' ? "שאלה:\n" : "תשובה:\n") + card.text;
+    } else {
+      div.className = "mem-card hidden-content";
+    }
+    div.dataset.idx = i;
+    div.onclick = () => onMemCardClick(i, div);
+    board.appendChild(div);
+  });
+}
+
+function onMemCardClick(idx, el) {
+  if(memIsPreview) return;
+  if(memBoardLocked) return;
+  if(el.classList.contains("matched") || el.classList.contains("selected")) return;
+  
+  const card = memCards[idx];
+  el.classList.remove("hidden-content");
+  el.classList.add("selected");
+  el.textContent = (card.type === 'q' ? "שאלה:\n" : "תשובה:\n") + card.text;
+  
+  if(!memFirstCard) {
+    memFirstCard = { idx, el, id: card.id };
+  } else {
+    memMoves++;
+    $("memMoves").textContent = memMoves;
+    memBoardLocked = true;
+    
+    const match = (memFirstCard.id === card.id);
+    if(match) {
+      el.classList.remove("selected");
+      el.classList.add("matched");
+      memFirstCard.el.classList.remove("selected");
+      memFirstCard.el.classList.add("matched");
+      
+      memMatches++;
+      $("memMatches").textContent = memMatches;
+      memFirstCard = null;
+      memBoardLocked = false;
+      
+      if(memMatches === memCards.length / 2) {
+        setTimeout(onMemLevelComplete, 500);
+      }
+    } else {
+      setTimeout(() => {
+        el.classList.remove("selected");
+        memFirstCard.el.classList.remove("selected");
+        
+        if (!memRevealed) {
+          el.textContent = "";
+          el.classList.add("hidden-content");
+          memFirstCard.el.textContent = "";
+          memFirstCard.el.classList.add("hidden-content");
+        }
+        
+        memFirstCard = null;
+        memBoardLocked = false;
+      }, 1500);
+    }
+  }
+}
+
+function onMemLevelComplete() {
+  const currentStreak = memProgress[memCurrentLevel] || 0;
+  const newStreak = currentStreak + 1;
+  memProgress[memCurrentLevel] = newStreak;
+  localStorage.setItem("roboMemProgress", JSON.stringify(memProgress));
+  
+  const best = memBestScores[memCurrentLevel];
+  if(!best || memMoves < best) {
+    memBestScores[memCurrentLevel] = memMoves;
+    localStorage.setItem("roboMemBest", JSON.stringify(memBestScores));
+  }
+  
+  if (window.confetti) {
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+  }
+  
+  setTimeout(() => {
+    $("mem-game-area").classList.add("hidden");
+    $("mem-level-select").classList.remove("hidden");
+    renderMemLevels();
+  }, 2500);
+}
+
+$("memBackBtn").addEventListener("click", () => {
+  memProgress[memCurrentLevel] = 0;
+  localStorage.setItem("roboMemProgress", JSON.stringify(memProgress));
+  
+  $("mem-game-area").classList.add("hidden");
+  $("mem-level-select").classList.remove("hidden");
+  renderMemLevels();
+});
+</script>
+</body>
+</html>

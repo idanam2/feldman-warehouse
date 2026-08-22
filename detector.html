@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>מד הנטייה הלאומי | Orientation Detector</title>
+  <meta name="description" content="השאלון המדעי וההומוריסטי ביותר לבדיקת הנטייה שלכם בזמן אמת, עם תוצאות קורעות!" />
+
+  <!-- Google Fonts: Heebo (Hebrew) + Orbitron -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&family=Orbitron:wght@500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ═══════════════════════════════════════
+       DESIGN SYSTEM & VARIABLES
+       ═══════════════════════════════════════ */
+    :root {
+      --bg-color: #020617;
+      --panel-bg: rgba(15, 23, 42, 0.60);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --primary-neon: #38bdf8;
+      --secondary-neon: #10b981;
+      --danger-neon: #f43f5e;
+      --accent-neon: #ec4899;
+      --rainbow-gradient: linear-gradient(90deg, #38bdf8 0%, #10b981 25%, #fbbf24 50%, #f97316 75%, #ec4899 100%);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Heebo', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: #f3f4f6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Ambient animated neon backgrounds */
+    .bg-orbs {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.15;
+      will-change: transform;
+    }
+
+    .orb-1 {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, var(--primary-neon) 0%, transparent 70%);
+      top: -100px;
+      left: -100px;
+      animation: float-1 25s ease-in-out infinite alternate;
+    }
+
+    .orb-2 {
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--accent-neon) 0%, transparent 70%);
+      bottom: -150px;
+      right: -100px;
+      animation: float-2 30s ease-in-out infinite alternate;
+    }
+
+    @keyframes float-1 {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(100px, 80px) scale(1.2); }
+    }
+
+    @keyframes float-2 {
+      0% { transform: translate(0, 0) scale(1.2); }
+      100% { transform: translate(-120px, -50px) scale(0.9); }
+    }
+
+    /* Subtle dot-grid overlay */
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1.5px, transparent 1.5px);
+      background-size: 32px 32px;
+      mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 40%, transparent 100%);
+    }
+
+    /* ═══════════════════════════════════════
+       GLASS CONTAINER & LAYOUT
+       ═══════════════════════════════════════ */
+    .app-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 900px;
+      padding: 1rem 1.5rem 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 0.25rem;
+    }
+
+    h1 {
+      font-size: 2.75rem;
+      font-weight: 900;
+      letter-spacing: -0.05em;
+      background: linear-gradient(135deg, #fff 30%, #38bdf8 70%, #ec4899 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 20px rgba(236, 72, 153, 0.25));
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #9ca3af;
+      font-weight: 400;
+    }
+
+    /* Main glass card */
+    .glass-card {
+      width: 100%;
+      background: var(--panel-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.75rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Navbar styling matches other pages */
+    .btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      color: #d1d5db;
+      padding: 0.6rem 1.2rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--primary-neon);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .btn.active {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(236, 72, 153, 0.15));
+      border-color: var(--accent-neon);
+      color: #e0f2fe;
+      box-shadow: 0 0 15px rgba(236, 72, 153, 0.2);
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      justify-content: center;
+    }
+
+    /* ═══════════════════════════════════════
+       THE DYNAMIC DETECTOR DETAILED SLIDER
+       ═══════════════════════════════════════ */
+    .detector-bar-container {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+    }
+
+    .slider-labels {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 900;
+      font-size: 1.15rem;
+      letter-spacing: 0.5px;
+    }
+
+    .label-left {
+      color: #38bdf8;
+      text-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+    }
+
+    .label-right {
+      background: var(--rainbow-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 8px rgba(236, 72, 153, 0.4));
+    }
+
+    /* The visual slider track */
+    .track-wrapper {
+      position: relative;
+      height: 24px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      overflow: visible;
+    }
+
+    .track-gradient-fill {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      background: var(--rainbow-gradient);
+      border-radius: 11px;
+      opacity: 0.85;
+      transition: width 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    /* Physical dial needle pin */
+    .needle {
+      position: absolute;
+      top: -6px;
+      width: 6px;
+      height: 34px;
+      background: #ffffff;
+      border-radius: 3px;
+      box-shadow: 0 0 14px #ffffff, 0 4px 10px rgba(0,0,0,0.8);
+      transition: left 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transform: translateX(-50%);
+      z-index: 10;
+    }
+
+    .needle::after {
+      content: '';
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 10px solid #ffffff;
+      filter: drop-shadow(0 -2px 5px rgba(255,255,255,0.5));
+    }
+
+    /* Value Display */
+    .value-bubble {
+      font-family: 'Orbitron', monospace;
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: #ffffff;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.15rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* ═══════════════════════════════════════
+       INTERACTIVE COMPONENTS & FLOW
+       ═══════════════════════════════════════ */
+    .step-section {
+      display: none;
+      animation: slideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      flex-direction: column;
+      gap: 1.5rem;
+      align-items: center;
+      width: 100%;
+    }
+
+    .step-section.active {
+      display: flex;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Game Question Header style */
+    .question-title {
+      font-size: 1.65rem;
+      font-weight: 900;
+      text-align: center;
+      background: linear-gradient(135deg, #f8fafc 0%, #7dd3fc 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.3;
+      filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.15));
+      margin-bottom: 0.5rem;
+    }
+
+    /* Gender Selection Buttons Grid */
+    .gender-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .gender-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1.5px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 2.25rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .gender-card:hover {
+      background: rgba(255, 255, 255, 0.07);
+      transform: translateY(-5px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .gender-card.male:hover {
+      border-color: #38bdf8;
+      box-shadow: 0 0 25px rgba(56, 189, 248, 0.25);
+    }
+
+    .gender-card.female:hover {
+      border-color: #ec4899;
+      box-shadow: 0 0 25px rgba(236, 72, 153, 0.25);
+    }
+
+    .gender-icon {
+      font-size: 3.5rem;
+      transition: transform 0.3s ease;
+    }
+
+    .gender-card:hover .gender-icon {
+      transform: scale(1.18) rotate(5deg);
+    }
+
+    .gender-name {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    /* Option Selection Buttons for Questionnaire */
+    .options-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 100%;
+      max-width: 650px;
+    }
+
+    .option-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1.5px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 1.25rem 1.75rem;
+      text-align: right;
+      color: #e2e8f0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .option-btn:hover {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: var(--primary-neon);
+      transform: scale(1.02);
+      box-shadow: 0 8px 24px rgba(56, 189, 248, 0.15);
+      color: #fff;
+    }
+
+    .option-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: #94a3b8;
+      transition: all 0.2s;
+    }
+
+    .option-btn:hover .option-badge {
+      background: var(--primary-neon);
+      border-color: var(--primary-neon);
+      color: #0f172a;
+      transform: scale(1.1);
+    }
+
+    /* ═══════════════════════════════════════
+       FINAL RESULTS COMPONENT
+       ═══════════════════════════════════════ */
+    .results-box {
+      width: 100%;
+      max-width: 700px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 2rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      align-items: center;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.4);
+    }
+
+    .result-percentage {
+      font-family: 'Orbitron', monospace;
+      font-size: 4rem;
+      font-weight: 900;
+      background: var(--rainbow-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 20px rgba(236,72,153,0.4));
+      line-height: 1;
+    }
+
+    .result-title {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    .result-description {
+      font-size: 1.05rem;
+      line-height: 1.6;
+      color: #9ca3af;
+      padding: 0 1rem;
+    }
+
+    .restart-btn {
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      border: 1px solid rgba(236, 72, 153, 0.35);
+      color: white;
+      font-size: 1.1rem;
+      font-weight: 700;
+      padding: 0.9rem 2.5rem;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 8px 25px rgba(236, 72, 153, 0.3);
+    }
+
+    .restart-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 35px rgba(236, 72, 153, 0.5);
+    }
+
+    /* Confetti Canvas */
+    #confetti-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    /* Custom progress dots */
+    .progress-dots {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-top: 1rem;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+      transition: all 0.3s;
+    }
+
+    .dot.active {
+      background: var(--primary-neon);
+      box-shadow: 0 0 8px var(--primary-neon);
+      transform: scale(1.2);
+    }
+
+    .dot.completed {
+      background: var(--secondary-neon);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient glowing orbs & grid -->
+  <div class="bg-orbs" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="grid-overlay"></div>
+  </div>
+
+  <!-- Confetti Canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Global Navigation Bar -->
+  <nav style="position: relative; z-index: 50; width: 100%; max-width: 900px; padding: 1.5rem 1.5rem 0 1.5rem; display: flex; justify-content: center; margin: 0 auto;">
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; border-radius: 16px; background: rgba(17, 24, 39, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(24px); width: 100%;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 1.25rem;">🎮</span>
+        <span style="font-weight: 900; font-size: 0.9rem; background: linear-gradient(90deg, #38bdf8, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">קומפלקס משחקים ואפליקציות</span>
+      </div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="index.html" class="btn" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">⚡ מחשבון אנרגיה</a>
+        <a href="minesweeper.html" class="btn" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">💣 שולה המוקשים</a>
+        <a href="sudoku.html" class="btn" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">🧩 סודוקו ניאון</a>
+        <a href="detector.html" class="btn active" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">🌈 גילוי נטייה</a>
+        <a href="buchris.html" class="btn" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">🕸️ מלכודת בוכריסים</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="app-container" style="padding-top: 1rem;">
+    <header>
+      <h1 id="main-title">גילוי הנטייה המדעי</h1>
+      <div class="subtitle" id="main-subtitle">השאלון המדעי והאינטראקטיבי ביותר לבדיקת מדד הנטייה הגאה שלך בזמן אמת!</div>
+    </header>
+
+    <main class="glass-card">
+      
+      <!-- Top dynamic indicator slider (Visible only after gender is chosen) -->
+      <div class="detector-bar-container" id="bar-panel" style="display: none; direction: ltr;">
+        <div class="slider-labels">
+          <span class="label-left" id="lbl-left">סטרייט</span>
+          <div class="flex items-center gap-3">
+            <span class="value-bubble" id="value-disp">50%</span>
+          </div>
+          <span class="label-right" id="lbl-right">הומו</span>
+        </div>
+        <div class="track-wrapper">
+          <div class="track-gradient-fill" id="track-fill" style="width: 50%;"></div>
+          <div class="needle" id="needle" style="left: 50%;"></div>
+        </div>
+      </div>
+
+      <!-- STEP 0: Choose Gender -->
+      <div class="step-section active" id="step-gender">
+        <h2 class="question-title">איזה בן אדם את/ה?</h2>
+        <p class="subtitle" style="text-align: center; margin-top: -0.5rem; margin-bottom: 0.5rem;">בחר מגדר כדי שנתאים עבורך את השאלות המדויקות ביותר!</p>
+        <div class="gender-grid">
+          <div class="gender-card male" onclick="chooseGender('male')">
+            <span class="gender-icon">♂️</span>
+            <span class="gender-name">מסוג בן</span>
+          </div>
+          <div class="gender-card female" onclick="chooseGender('female')">
+            <span class="gender-icon">♀️</span>
+            <span class="gender-name">מסוג בת</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 1: Main Questionnaire flow -->
+      <div class="step-section" id="step-questions">
+        <h2 class="question-title" id="question-text">טוען שאלה...</h2>
+        <div class="options-container">
+          <div class="option-btn" onclick="selectOption(0)">
+            <span id="opt-a-text">אפשרות א׳</span>
+            <span class="option-badge">א׳</span>
+          </div>
+          <div class="option-btn" onclick="selectOption(1)">
+            <span id="opt-b-text">אפשרות ב׳</span>
+            <span class="option-badge">ב׳</span>
+          </div>
+        </div>
+        <div class="progress-dots" id="dots-container"></div>
+      </div>
+
+      <!-- STEP 2: Final Diagnosis Results -->
+      <div class="step-section" id="step-results">
+        <div class="results-box">
+          <span class="result-percentage" id="res-percent">100%</span>
+          <h3 class="result-title" id="res-title">אבחון סופי</h3>
+          <p class="result-description" id="res-desc">טוען את התוצאה המדעית...</p>
+          <button class="restart-btn" onclick="resetGame()">התחל מחדש 🔄</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    /* ═══════════════════════════════════════
+       SOUND SYNTHESIZER (Web Audio API)
+       ═══════════════════════════════════════ */
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playSound(type) {
+      try {
+        initAudio();
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'select') {
+          // Playful ascending pitch
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(350, now);
+          osc.frequency.exponentialRampToValueAtTime(650, now + 0.12);
+          gainNode.gain.setValueAtTime(0.12, now);
+          gainNode.gain.linearRampToValueAtTime(0.01, now + 0.12);
+          osc.start(now);
+          osc.stop(now + 0.12);
+        } else if (type === 'slide') {
+          // Soft slider feedback sweep
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(250, now);
+          osc.frequency.exponentialRampToValueAtTime(440, now + 0.25);
+          gainNode.gain.setValueAtTime(0.08, now);
+          gainNode.gain.linearRampToValueAtTime(0.001, now + 0.25);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } else if (type === 'win') {
+          // Happy majestic synth arpeggio!
+          const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, index) => {
+            const itemOsc = audioCtx.createOscillator();
+            const itemGain = audioCtx.createGain();
+            itemOsc.connect(itemGain);
+            itemGain.connect(audioCtx.destination);
+            
+            itemOsc.type = 'sine';
+            itemOsc.frequency.setValueAtTime(freq, now + index * 0.08);
+            itemGain.gain.setValueAtTime(0.12, now + index * 0.08);
+            itemGain.gain.linearRampToValueAtTime(0.01, now + index * 0.08 + 0.35);
+            
+            itemOsc.start(now + index * 0.08);
+            itemOsc.stop(now + index * 0.08 + 0.35);
+          });
+        }
+      } catch (e) {
+        console.warn("Audio Context error:", e);
+      }
+    }
+
+    /* ═══════════════════════════════════════
+       CONFETTI SYSTEM
+       ═══════════════════════════════════════ */
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    let confetti = [];
+    let isConfettiActive = false;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class ConfettiParticle {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height - canvas.height;
+        this.size = Math.random() * 8 + 8;
+        this.color = `hsl(${Math.random() * 360}, 95%, 65%)`;
+        this.speedX = Math.random() * 6 - 3;
+        this.speedY = Math.random() * 5 + 4;
+        this.rotation = Math.random() * 360;
+        this.rotationSpeed = Math.random() * 5 - 2.5;
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.rotation += this.rotationSpeed;
+        if (this.y > canvas.height) {
+          this.y = -20;
+          this.x = Math.random() * canvas.width;
+        }
+      }
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate((this.rotation * Math.PI) / 180);
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+        ctx.restore();
+      }
+    }
+
+    function startConfetti() {
+      confetti = [];
+      for (let i = 0; i < 150; i++) confetti.push(new ConfettiParticle());
+      isConfettiActive = true;
+      animateConfetti();
+    }
+
+    function animateConfetti() {
+      if (!isConfettiActive) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      confetti.forEach(p => { p.update(); p.draw(); });
+      requestAnimationFrame(animateConfetti);
+    }
+
+    function stopConfetti() {
+      isConfettiActive = false;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    /* ═══════════════════════════════════════
+       GAME SYSTEM DATABASE & STATE
+       ═══════════════════════════════════════ */
+    let selectedGender = '';
+    let currentQuestionIdx = 0;
+    let orientationValue = 50; // Starts in the middle (50%)
+    let activeQuestionsList = [];
+
+    const DATABASE = {
+      male: {
+        title: "גלה את ההומו 🌈",
+        subtitle: "סורק את הנטייה והרגלי הסטייל שלך בצורה המדעית ביותר!",
+        labels: { left: "סטרייט ♂️", right: "הומו 🏳️‍🌈" },
+        questions: [
+          {
+            text: "בוא נתחיל מהסוף: האם אתה הומו?",
+            options: [
+              { text: "כן, בהחלט וגאה בזה! 🌈", value: 100, isInstantOut: true },
+              { text: "לא, תמשיכו לבחון אותי...", value: 0 }
+            ]
+          },
+          {
+            text: "איזה משקה הכי מדבר אליך כשאתה יושב בבר?",
+            options: [
+              { text: "בירה פילזנר קרה מהחבית, עם קצף שמטפטף על השפם 🍺", value: 0 },
+              { text: "קוקטייל אפרול שפריץ מרענן עם קש צבעוני ומטריה ורודה 🍹", value: 20 }
+            ]
+          },
+          {
+            text: "איך אתה מגיב כשחבר טוב מציע לך ללכת לשופינג בקניון?",
+            options: [
+              { text: "״שופינג? אני קונה פעם בשנה 3 ג׳ינסים זהים וממשיך בחיים.״ 🛒", value: 0 },
+              { text: "״יוו בדיוק רציתי לעבור בזארה, יש שם סייל מטורף וצריך אקססוריז!״ 🛍️", value: 20 }
+            ]
+          },
+          {
+            text: "כשמתנגן שיר של בריטני ספירס או ליידי גאגא במסיבה או ברדיו באוטו:",
+            options: [
+              { text: "מנסה להיראות עסוק בטלפון ומקווה שאף אחד לא ישים לב 🤫", value: 0 },
+              { text: "צורח את המילים בטונים הכי גבוהים ועושה כוריאוגרפיה מושלמת 💃", value: 20 }
+            ]
+          },
+          {
+            text: "איך נראה ארון הבגדים שלך בבית?",
+            options: [
+              { text: "ערימה מבולגנת של בגדים שמסודרת לפי ׳נקי בערך׳ ו׳מלוכלך מאוד׳ 🧺", value: 0 },
+              { text: "מסודר להפליא לפי גוונים, מגוהץ למשעי, עם קולבים מעץ ריחני 👗", value: 20 }
+            ]
+          },
+          {
+            text: "מה דעתך על קרם לחות ושגרת טיפוח פנים בבוקר?",
+            options: [
+              { text: "סבון כלים או מים של המקלחת זה מעל ומעבר 🧼", value: 0 },
+              { text: "קלינסר, טונר, סרום חומצה היאלורונית וקרם הגנה SPF50 חובה! 🧴", value: 20 }
+            ]
+          }
+        ]
+      },
+      female: {
+        title: "גלה את הלסבית 🌈",
+        subtitle: "סורק את מדד העצמאות והאסתטיקה הנשית שלך בצורה המדעית ביותר!",
+        labels: { left: "סטרייטית ♀️", right: "לסבית 🏳️‍🌈" },
+        questions: [
+          {
+            text: "בואי נתחיל מהסוף: האם את לסבית?",
+            options: [
+              { text: "כן, לגמרי וגאה בזה! 🌈", value: 100, isInstantOut: true },
+              { text: "לא, תמשיכו לבחון אותי...", value: 0 }
+            ]
+          },
+          {
+            text: "מה הדרך המועדפת עליך לבלות סוף שבוע פנוי?",
+            options: [
+              { text: "להתלבש חגיגי, לשים עקבים גבוהים ולצאת למועדון עם שולחן מוזמן 👠", value: 0 },
+              { text: "פיקניק ביער עם חולצת פלאנל משובצת, כלב מאומץ ובירה קרה 🌲", value: 20 }
+            ]
+          },
+          {
+            text: "יש לך רהיט חדש מאיקאה להרכיב בבית. מה את עושה?",
+            options: [
+              { text: "מתקשרת לאבא, לבן הזוג או לשיפוצניק שיבוא לעזור ☎️", value: 0 },
+              { text: "מוציאה את מברגת הפיליפס הנטענת שלי ומרכיבה את זה לבד תוך 20 דקות 🛠️", value: 20 }
+            ]
+          },
+          {
+            text: "איך נראות הציפורניים שלך בדרך כלל?",
+            options: [
+              { text: "לק ג׳ל ארוך ומעוצב שמתוחזק כל שלושה שבועות בדיוק 💅", value: 0 },
+              { text: "קצרות, נקיות, בלי שטויות, הכי נוח ופרקטי לעבודה בידיים ✂️", value: 20 }
+            ]
+          },
+          {
+            text: "איך את מגיבה כשאת רואה חתול רחוב ג׳ינג׳י מתוק?",
+            options: [
+              { text: "אומרת ״אוי חמוד״ וממשיכה ללכת כרגיל", value: 20 },
+              { text: "מנסה לשחד אותו עם אוכל, נותנת לו שם ומאמצת אותו כחתול הרביעי שלי 🐱", value: 0 }
+            ]
+          },
+          {
+            text: "כשאת שומעת פלייליסט של אינדי-רוק נשי נוסטלגי או רונה קינן:",
+            options: [
+              { text: "מעבירה מיד לתחנת פופ קלילה או גלגלצ 📻", value: 20 },
+              { text: "עוצמת עיניים, שרה מהלב ומזילה דמעה נוסטלגית 🥺", value: 0 }
+            ]
+          }
+        ]
+      }
+    };
+
+    /* ═══════════════════════════════════════
+       GAME SYSTEM LOGIC FLOW
+       ═══════════════════════════════════════ */
+    
+    function chooseGender(gender) {
+      playSound('select');
+      selectedGender = gender;
+      activeQuestionsList = DATABASE[gender].questions;
+      currentQuestionIdx = 0;
+      orientationValue = 50; // Start at 50%
+
+      // Setup headers
+      document.getElementById('main-title').textContent = DATABASE[gender].title;
+      document.getElementById('main-subtitle').textContent = DATABASE[gender].subtitle;
+      document.getElementById('lbl-left').textContent = DATABASE[gender].labels.left;
+      document.getElementById('lbl-right').textContent = DATABASE[gender].labels.right;
+
+      // Update Slider Visuals
+      updateSlider(50);
+
+      // Transitions
+      document.getElementById('step-gender').classList.remove('active');
+      document.getElementById('bar-panel').style.display = 'flex';
+      document.getElementById('step-questions').classList.add('active');
+
+      // Load First Question
+      loadQuestion();
+    }
+
+    function updateSlider(val) {
+      orientationValue = Math.max(0, Math.min(100, val));
+      
+      const needle = document.getElementById('needle');
+      const trackFill = document.getElementById('track-fill');
+      const valueDisp = document.getElementById('value-disp');
+
+      needle.style.left = `${orientationValue}%`;
+      trackFill.style.width = `${orientationValue}%`;
+      valueDisp.textContent = `${Math.round(orientationValue)}%`;
+    }
+
+    function loadQuestion() {
+      const q = activeQuestionsList[currentQuestionIdx];
+      document.getElementById('question-text').textContent = q.text;
+      document.getElementById('opt-a-text').textContent = q.options[0].text;
+      document.getElementById('opt-b-text').textContent = q.options[1].text;
+
+      // Dots progress
+      const dotsContainer = document.getElementById('dots-container');
+      dotsContainer.innerHTML = '';
+      for (let i = 0; i < activeQuestionsList.length; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        if (i === currentQuestionIdx) dot.className = 'dot active';
+        else if (i < currentQuestionIdx) dot.className = 'dot completed';
+        dotsContainer.appendChild(dot);
+      }
+    }
+
+    function selectOption(optIndex) {
+      playSound('select');
+      const q = activeQuestionsList[currentQuestionIdx];
+      const selectedOpt = q.options[optIndex];
+
+      // Instant out check (For Question 1: "Yes, I am Gay")
+      if (selectedOpt.isInstantOut) {
+        updateSlider(100);
+        setTimeout(() => {
+          showFinalResults(true);
+        }, 300);
+        return;
+      }
+
+      // Calculate sliding adjustment
+      if (currentQuestionIdx === 0) {
+        // Question 1 "No" resets baseline to 0%
+        updateSlider(0);
+      } else {
+        // Additive percentage calculation
+        const change = selectedOpt.value;
+        const nextVal = orientationValue + change;
+        updateSlider(nextVal);
+      }
+
+      playSound('slide');
+
+      // Next Question or end
+      currentQuestionIdx++;
+      if (currentQuestionIdx < activeQuestionsList.length) {
+        setTimeout(() => {
+          loadQuestion();
+        }, 400);
+      } else {
+        setTimeout(() => {
+          showFinalResults(false);
+        }, 600);
+      }
+    }
+
+    function showFinalResults(isInstantOut) {
+      playSound('win');
+      startConfetti();
+
+      document.getElementById('step-questions').classList.remove('active');
+      document.getElementById('step-results').classList.add('active');
+
+      const resPercent = document.getElementById('res-percent');
+      const resTitle = document.getElementById('res-title');
+      const resDesc = document.getElementById('res-desc');
+
+      const val = Math.round(orientationValue);
+      resPercent.textContent = `${val}%`;
+
+      if (selectedGender === 'male') {
+        if (isInstantOut || val >= 85) {
+          resTitle.textContent = "🏳️‍🌈 הומו גאה ומנצח!";
+          resDesc.textContent = "כל הכבוד על הכנות והביטחון העצמי! המחקר המדעי שלנו גילה שאתה הומו גאה ומרהיב ב-100%. חבילת קוביות הקרח והזמנה למסיבה בדרך אליך! 🎉";
+        } else if (val >= 55) {
+          resTitle.textContent = "💅 הומואיות מעודנת עם המון סטייל";
+          resDesc.textContent = "אתה סטרייט ברמה הרשמית, אבל המדד מגלה שיש לך נפש אומנותית רגישה, סטייל מטורף ואהבה עזה לקוקטיילים ושופינג מעבר לממוצע. ארון הבגדים שלך מודה לך!";
+        } else if (val >= 25) {
+          resTitle.textContent = "🍻 סטרייט מעורבב עם נגיעות טיפוח";
+          resDesc.textContent = "אתה סטרייט נורמטיבי ביותר. אתה יודע מתי הגיע הזמן לסדר את הגבות או לקנות חולצה שאינה שחורה, אבל בסוף היום בירה פושרת מול הטלוויזיה היא החצי השני שלך.";
+        } else {
+          resTitle.textContent = "🪵 סטרייט כמו סרגל פלדה!";
+          resDesc.textContent = "מדד הגאווה מראה קרוב ל-0%! אתה משתמש בסבון כלים כדי לחפוף את הראש, הולך עם אותו ג'ינס שבועיים ברצף, ויש לך מערכת יחסים אינטימית בעיקר עם כדורגל ואוכל חריף.";
+        }
+      } else {
+        // Female diagnoses
+        if (isInstantOut || val >= 85) {
+          resTitle.textContent = "🏳️‍🌈 לסבית גאה ומנצחת!";
+          resDesc.textContent = "כל הכבוד על הכנות והגאווה! את לסבית מושלמת ב-100%. מברג הפיליפס האישי שלך והזמנה לקמפינג רומנטי כבר מחכים לך בתיבת המייל! 🎉";
+        } else if (val >= 55) {
+          resTitle.textContent = "🛠️ לסביות מעודנת עם פוטנציאל הרכבה";
+          resDesc.textContent = "את מעריכה אסתטיקה נשית וסגנון חיים עצמאי בצורה מדהימה. חצי מהחברות שלך כבר רשמו אותך להרכיב להן ארונות מאיקאה, והטבע והטיולים מועדפים עליך תמיד!";
+        } else if (val >= 25) {
+          resTitle.textContent = "💅 סטרייטית מודרנית ומשודרגת";
+          resDesc.textContent = "את סטרייטית קלאסית עם ראש פתוח ואהבה גדולה לאופנה וסרטים. את יודעת להרכיב נורות לבד אבל מעדיפה להשאיר את המברג בארון בשביל לק ג'ל צבעוני.";
+        } else {
+          resTitle.textContent = "👠 סטרייטית קלאסית ללא רבב!";
+          resDesc.textContent = "מדד הגאווה קרוב ל-0%! את חיה על נעלי עקב, תורים שבועיים ללק ג'ל, אהבה עזה לקומדיות רומנטיות והערצה עיוורת לכוכב הריאליטי התורן. קלאס באפס מאמץ!";
+        }
+      }
+    }
+
+    function resetGame() {
+      stopConfetti();
+      selectedGender = '';
+      currentQuestionIdx = 0;
+      orientationValue = 50;
+
+      document.getElementById('main-title').textContent = "גילוי הנטייה המדעי";
+      document.getElementById('main-subtitle').textContent = "השאלון המדעי והאינטראקטיבי ביותר לבדיקת מדד הנטייה הגאה שלך בזמן אמת!";
+      
+      document.getElementById('step-results').classList.remove('active');
+      document.getElementById('bar-panel').style.display = 'none';
+      document.getElementById('step-gender').classList.add('active');
+    }
+  </script>
+</body>
+</html>

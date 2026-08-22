@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>סודוקו ניאון | Cyber Sudoku</title>
+  <meta name="description" content="משחק סודוקו יפהפה ומודרני בעיצוב סייבר-פאנק וזכוכית." />
+
+  <!-- Google Fonts: Heebo (Hebrew) + Orbitron (Digital Timer) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&family=Orbitron:wght@500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ═══════════════════════════════════════
+       DESIGN SYSTEM & VARIABLES
+       ═══════════════════════════════════════ */
+    :root {
+      --bg-color: #030712;
+      --panel-bg: rgba(17, 24, 39, 0.65);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --primary-neon: #a855f7; /* Purple for Sudoku */
+      --secondary-neon: #10b981;
+      --danger-neon: #f43f5e;
+      --accent-neon: #38bdf8;
+      
+      --cell-unrevealed: linear-gradient(135deg, #1f2937, #111827);
+      --cell-hover: linear-gradient(135deg, #374151, #1f2937);
+      --cell-revealed: #0b0f19;
+      --cell-border: rgba(255, 255, 255, 0.04);
+      --cell-selected: rgba(168, 85, 247, 0.25);
+      --cell-highlight: rgba(168, 85, 247, 0.08);
+      --cell-related: rgba(56, 189, 248, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Heebo', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: #f3f4f6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Ambient animated neon backgrounds */
+    .bg-orbs {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.15;
+      will-change: transform;
+    }
+
+    .orb-1 {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, var(--primary-neon) 0%, transparent 70%);
+      top: -100px;
+      left: -100px;
+      animation: float-1 25s ease-in-out infinite alternate;
+    }
+
+    .orb-2 {
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--accent-neon) 0%, transparent 70%);
+      bottom: -150px;
+      right: -100px;
+      animation: float-2 30s ease-in-out infinite alternate;
+    }
+
+    @keyframes float-1 {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(100px, 80px) scale(1.2); }
+    }
+
+    @keyframes float-2 {
+      0% { transform: translate(0, 0) scale(1.2); }
+      100% { transform: translate(-120px, -50px) scale(0.9); }
+    }
+
+    /* Subtle dot-grid overlay */
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1.5px, transparent 1.5px);
+      background-size: 32px 32px;
+      mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 40%, transparent 100%);
+    }
+
+    /* ═══════════════════════════════════════
+       GLASS CONTAINER & LAYOUT
+       ═══════════════════════════════════════ */
+    .app-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 900px;
+      padding: 1rem 1.5rem 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 0.25rem;
+    }
+
+    h1 {
+      font-size: 2.75rem;
+      font-weight: 900;
+      letter-spacing: -0.05em;
+      background: linear-gradient(135deg, #fff 30%, #a855f7 70%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.25));
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #9ca3af;
+      font-weight: 400;
+    }
+
+    /* Main glass card */
+    .glass-card {
+      width: 100%;
+      background: var(--panel-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Control Panel */
+    .control-panel {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 1.25rem;
+    }
+
+    .difficulty-group {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      color: #d1d5db;
+      padding: 0.6rem 1.2rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--primary-neon);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .btn.active {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(56, 189, 248, 0.1));
+      border-color: var(--primary-neon);
+      color: #e0f2fe;
+      box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      justify-content: center;
+    }
+
+    /* Status Bar with Timer and Mistakes Counter */
+    .status-bar {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 16px;
+      padding: 0.85rem 1.5rem;
+    }
+
+    .stat-display {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .stat-value {
+      font-family: 'Orbitron', monospace;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--primary-neon);
+      text-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+    }
+
+    .stat-value.danger {
+      color: var(--danger-neon);
+      text-shadow: 0 0 10px rgba(244, 63, 94, 0.3);
+    }
+
+    /* Reset button */
+    .face-btn {
+      font-size: 1.4rem;
+      background: linear-gradient(135deg, #1f2937, #111827);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .face-btn:hover {
+      transform: scale(1.1) rotate(5deg);
+      border-color: var(--primary-neon);
+      box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
+    }
+
+    /* ═══════════════════════════════════════
+       SUDOKU BOARD & GRID
+       ═══════════════════════════════════════ */
+    .board-container {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      padding: 0.25rem;
+    }
+
+    .sudoku-board {
+      display: grid;
+      grid-template-columns: repeat(9, 44px);
+      grid-template-rows: repeat(9, 44px);
+      gap: 1px;
+      background: rgba(255, 255, 255, 0.15); /* Thick borders */
+      border: 3px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    @media (max-width: 480px) {
+      .sudoku-board {
+        grid-template-columns: repeat(9, 36px);
+        grid-template-rows: repeat(9, 36px);
+      }
+      .sudoku-cell {
+        font-size: 1.1rem !important;
+      }
+    }
+
+    .sudoku-cell {
+      background: #0b0f19;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.15s ease;
+    }
+
+    /* Thick borders between blocks */
+    .sudoku-cell:nth-child(3n) {
+      border-left: 2.5px solid rgba(255, 255, 255, 0.22);
+    }
+    
+    /* Rows borders */
+    .sudoku-cell[data-row="2"], .sudoku-cell[data-row="5"] {
+      border-bottom: 2.5px solid rgba(255, 255, 255, 0.22);
+    }
+
+    /* State Styling */
+    .sudoku-cell.given {
+      color: #cbd5e1;
+      font-weight: 500;
+      background: #111827;
+    }
+
+    .sudoku-cell.selected {
+      background: var(--cell-selected) !important;
+      box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+    }
+
+    .sudoku-cell.highlighted {
+      background: var(--cell-highlight);
+    }
+
+    .sudoku-cell.related {
+      background: var(--cell-related);
+    }
+
+    .sudoku-cell.error {
+      color: var(--danger-neon) !important;
+      text-shadow: 0 0 8px rgba(244, 63, 94, 0.4);
+      background: rgba(244, 63, 94, 0.08);
+    }
+
+    /* Candidates/Notes mode */
+    .sudoku-cell .notes-grid {
+      position: absolute;
+      inset: 2px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      font-size: 0.6rem;
+      color: #6b7280;
+      line-height: 1;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    /* ═══════════════════════════════════════
+       NUMPAD CONTROLS
+       ═══════════════════════════════════════ */
+    .input-pad {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+
+    .num-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-size: 1.4rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .num-btn:hover {
+      background: rgba(168, 85, 247, 0.15);
+      border-color: var(--primary-neon);
+      transform: scale(1.05);
+    }
+
+    .num-btn:active {
+      transform: scale(0.95);
+    }
+
+    .action-btn {
+      padding: 0 1rem;
+      font-size: 0.9rem;
+      width: auto;
+      font-weight: 600;
+    }
+
+    .action-btn.active {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(56, 189, 248, 0.1));
+      border-color: var(--secondary-neon);
+      color: #10b981;
+    }
+
+    /* Interactive instructions */
+    .instructions {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-top: 0.5rem;
+      line-height: 1.4;
+    }
+
+    /* Canvas Confetti */
+    #confetti-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient glowing orbs & grid -->
+  <div class="bg-orbs" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="grid-overlay"></div>
+  </div>
+
+  <!-- Confetti Canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Global Navigation Bar -->
+  <nav style="position: relative; z-index: 50; width: 100%; max-width: 900px; padding: 1.5rem 1.5rem 0 1.5rem; display: flex; justify-content: center; margin: 0 auto;">
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; border-radius: 16px; background: rgba(17, 24, 39, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(24px); width: 100%;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 1.25rem;">🎮</span>
+        <span style="font-weight: 900; font-size: 0.9rem; background: linear-gradient(90deg, #38bdf8, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">קומפלקס משחקים ואפליקציות</span>
+      </div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="index.html" class="btn" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">⚡ מחשבון אנרגיה</a>
+        <a href="minesweeper.html" class="btn" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">💣 שולה המוקשים</a>
+        <a href="sudoku.html" class="btn active" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">🧩 סודוקו ניאון</a>
+        <a href="detector.html" class="btn" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">🌈 גילוי נטייה</a>
+        <a href="buchris.html" class="btn" style="text-decoration: none; font-size: 0.8rem; padding: 0.5rem 0.9rem;">🕸️ מלכודת בוכריסים</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="app-container" style="padding-top: 1rem;">
+    <header>
+      <h1>סודוקו ניאון</h1>
+      <div class="subtitle">משחק חשיבה סודוקו מודרני, עם מנגנון בדיקת שגיאות ורמות קושי</div>
+    </header>
+
+    <main class="glass-card">
+      <!-- Control Panel -->
+      <div class="control-panel">
+        <div class="difficulty-group">
+          <button class="btn active" id="diff-easy" onclick="changeDifficulty('easy')">🔥 קל</button>
+          <button class="btn" id="diff-medium" onclick="changeDifficulty('medium')">⚡ בינוני</button>
+          <button class="btn" id="diff-hard" onclick="changeDifficulty('hard')">💀 קשה</button>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn icon-btn" id="sound-btn" onclick="toggleSound()" title="הפעל/כבה שמע">🔊</button>
+        </div>
+      </div>
+
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <!-- Mistakes -->
+        <div class="stat-display">
+          <span class="stat-label">שגיאות</span>
+          <span class="stat-value" id="mistakes-counter">0/3</span>
+        </div>
+
+        <!-- Reset Button -->
+        <button class="face-btn" id="reset-btn" onclick="generateNewPuzzle()">🔄</button>
+
+        <!-- Timer -->
+        <div class="stat-display">
+          <span class="stat-label">זמן</span>
+          <span class="stat-value" id="timer">00:00</span>
+        </div>
+      </div>
+
+      <!-- Sudoku Board -->
+      <div class="board-container">
+        <div class="sudoku-board" id="sudoku-grid"></div>
+      </div>
+
+      <!-- Numpad controls -->
+      <div class="input-pad">
+        <button class="num-btn" onclick="inputNumber(1)">1</button>
+        <button class="num-btn" onclick="inputNumber(2)">2</button>
+        <button class="num-btn" onclick="inputNumber(3)">3</button>
+        <button class="num-btn" onclick="inputNumber(4)">4</button>
+        <button class="num-btn" onclick="inputNumber(5)">5</button>
+        <button class="num-btn" onclick="inputNumber(6)">6</button>
+        <button class="num-btn" onclick="inputNumber(7)">7</button>
+        <button class="num-btn" onclick="inputNumber(8)">8</button>
+        <button class="num-btn" onclick="inputNumber(9)">9</button>
+        <button class="num-btn action-btn" onclick="inputNumber(0)" style="background: rgba(244, 63, 94, 0.1); border-color: rgba(244, 63, 94, 0.2); color: #fb7185;">מחק ✖</button>
+        <button class="num-btn action-btn" id="notes-mode-btn" onclick="toggleNotesMode()">עיפרון ✏</button>
+      </div>
+
+      <div class="instructions">
+        בחר תא בלוח ולאחר מכן לחץ על מספר במקלדת או במקלדת הנומרית למטה.<br>
+        מצב עיפרון מאפשר לסמן מספרים אפשריים בכל משבצת.
+      </div>
+    </main>
+  </div>
+
+  <script>
+    /* ═══════════════════════════════════════
+       SOUND SYNTHESIZER
+       ═══════════════════════════════════════ */
+    let audioCtx = null;
+    let isSoundEnabled = true;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playSound(type) {
+      if (!isSoundEnabled) return;
+      try {
+        initAudio();
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'select') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(450, now);
+          osc.frequency.exponentialRampToValueAtTime(300, now + 0.05);
+          gainNode.gain.setValueAtTime(0.08, now);
+          gainNode.gain.linearRampToValueAtTime(0.01, now + 0.05);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        } else if (type === 'place') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(587.33, now); // D5
+          osc.frequency.setValueAtTime(659.25, now + 0.05); // E5
+          gainNode.gain.setValueAtTime(0.1, now);
+          gainNode.gain.linearRampToValueAtTime(0.01, now + 0.12);
+          osc.start(now);
+          osc.stop(now + 0.12);
+        } else if (type === 'error') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(150, now);
+          osc.frequency.linearRampToValueAtTime(100, now + 0.25);
+          gainNode.gain.setValueAtTime(0.2, now);
+          gainNode.gain.linearRampToValueAtTime(0.01, now + 0.25);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } else if (type === 'win') {
+          const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+          notes.forEach((freq, index) => {
+            const itemOsc = audioCtx.createOscillator();
+            const itemGain = audioCtx.createGain();
+            itemOsc.connect(itemGain);
+            itemGain.connect(audioCtx.destination);
+            
+            itemOsc.type = 'triangle';
+            itemOsc.frequency.setValueAtTime(freq, now + index * 0.08);
+            itemGain.gain.setValueAtTime(0.12, now + index * 0.08);
+            itemGain.gain.linearRampToValueAtTime(0.01, now + index * 0.08 + 0.3);
+            
+            itemOsc.start(now + index * 0.08);
+            itemOsc.stop(now + index * 0.08 + 0.3);
+          });
+        }
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    function toggleSound() {
+      isSoundEnabled = !isSoundEnabled;
+      const btn = document.getElementById('sound-btn');
+      btn.textContent = isSoundEnabled ? '🔊' : '🔇';
+      if (isSoundEnabled) playSound('select');
+    }
+
+    /* ═══════════════════════════════════════
+       CONFETTI SYSTEM
+       ═══════════════════════════════════════ */
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    let confetti = [];
+    let isConfettiActive = false;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class ConfettiParticle {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height - canvas.height;
+        this.size = Math.random() * 8 + 6;
+        this.color = `hsl(${Math.random() * 360}, 90%, 65%)`;
+        this.speedX = Math.random() * 4 - 2;
+        this.speedY = Math.random() * 4 + 3;
+        this.rotation = Math.random() * 360;
+        this.rotationSpeed = Math.random() * 4 - 2;
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.rotation += this.rotationSpeed;
+        if (this.y > canvas.height) {
+          this.y = -20;
+          this.x = Math.random() * canvas.width;
+        }
+      }
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate((this.rotation * Math.PI) / 180);
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+        ctx.restore();
+      }
+    }
+
+    function startConfetti() {
+      confetti = [];
+      for (let i = 0; i < 100; i++) confetti.push(new ConfettiParticle());
+      isConfettiActive = true;
+      animateConfetti();
+    }
+
+    function animateConfetti() {
+      if (!isConfettiActive) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      confetti.forEach(p => { p.update(); p.draw(); });
+      requestAnimationFrame(animateConfetti);
+    }
+
+    /* ═══════════════════════════════════════
+       SUDOKU CORE GENERATOR & LOGIC
+       ═══════════════════════════════════════ */
+    let solutionGrid = [];
+    let puzzleGrid = [];
+    let userGrid = [];
+    let cellNotes = Array.from({length: 81}, () => []);
+    
+    let selectedCellIdx = null;
+    let mistakes = 0;
+    const maxMistakes = 3;
+    let timerInterval = null;
+    let secondsElapsed = 0;
+    let currentDifficulty = 'easy';
+    let isNotesMode = false;
+
+    // Simple robust Sudoku generator
+    function generateSudoku() {
+      // 1. Generate full solvable board
+      const board = Array(81).fill(0);
+      solveSudoku(board);
+      solutionGrid = [...board];
+
+      // 2. Remove items depending on difficulty
+      let cellsToRemove = 40;
+      if (currentDifficulty === 'medium') cellsToRemove = 48;
+      if (currentDifficulty === 'hard') cellsToRemove = 54;
+
+      const puzzle = [...board];
+      const indices = Array.from({length: 81}, (_, i) => i);
+      // Shuffle indices
+      for (let i = indices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [indices[i], indices[j]] = [indices[j], indices[i]];
+      }
+
+      for (let i = 0; i < cellsToRemove; i++) {
+        puzzle[indices[i]] = 0;
+      }
+
+      puzzleGrid = [...puzzle];
+      userGrid = [...puzzle];
+    }
+
+    // Helper: standard Sudoku solver backtracking algorithm
+    function solveSudoku(board) {
+      for (let i = 0; i < 81; i++) {
+        if (board[i] === 0) {
+          const row = Math.floor(i / 9);
+          const col = i % 9;
+          const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+          // shuffle numbers
+          for (let n = nums.length - 1; n > 0; n--) {
+            const j = Math.floor(Math.random() * (n + 1));
+            [nums[n], nums[j]] = [nums[j], nums[n]];
+          }
+
+          for (let num of nums) {
+            if (isValidPlacement(board, row, col, num)) {
+              board[i] = num;
+              if (solveSudoku(board)) return true;
+              board[i] = 0;
+            }
+          }
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function isValidPlacement(board, row, col, num) {
+      for (let i = 0; i < 9; i++) {
+        // Row check
+        if (board[row * 9 + i] === num) return false;
+        // Col check
+        if (board[i * 9 + col] === num) return false;
+      }
+      // Box check
+      const boxRow = Math.floor(row / 3) * 3;
+      const boxCol = Math.floor(col / 3) * 3;
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          if (board[(boxRow + r) * 9 + (boxCol + c)] === num) return false;
+        }
+      }
+      return true;
+    }
+
+    /* ═══════════════════════════════════════
+       INTERACTIVE GRAPHICS & RENDER
+       ═══════════════════════════════════════ */
+    function renderBoard() {
+      const grid = document.getElementById('sudoku-grid');
+      grid.innerHTML = '';
+
+      for (let i = 0; i < 81; i++) {
+        const val = userGrid[i];
+        const cell = document.createElement('div');
+        cell.className = 'sudoku-cell';
+        const row = Math.floor(i / 9);
+        const col = i % 9;
+        cell.setAttribute('data-row', row);
+        cell.setAttribute('data-col', col);
+        cell.setAttribute('data-index', i);
+
+        if (puzzleGrid[i] !== 0) {
+          cell.classList.add('given');
+          cell.textContent = val;
+        } else if (val !== 0) {
+          cell.textContent = val;
+          // Check for conflicts
+          if (val !== solutionGrid[i]) {
+            cell.classList.add('error');
+          }
+        } else {
+          // Render candidates/notes if any
+          const notes = cellNotes[i];
+          if (notes && notes.length > 0) {
+            const notesGrid = document.createElement('div');
+            notesGrid.className = 'notes-grid';
+            for (let num = 1; num <= 9; num++) {
+              const noteCell = document.createElement('div');
+              if (notes.includes(num)) {
+                noteCell.textContent = num;
+              }
+              notesGrid.appendChild(noteCell);
+            }
+            cell.appendChild(notesGrid);
+          }
+        }
+
+        cell.addEventListener('click', () => selectCell(i));
+        grid.appendChild(cell);
+      }
+      highlightCells();
+    }
+
+    function selectCell(idx) {
+      selectedCellIdx = idx;
+      playSound('select');
+      highlightCells();
+    }
+
+    function highlightCells() {
+      const cells = document.querySelectorAll('.sudoku-cell');
+      if (selectedCellIdx === null) return;
+
+      const selRow = Math.floor(selectedCellIdx / 9);
+      const selCol = selectedCellIdx % 9;
+      const selVal = userGrid[selectedCellIdx];
+
+      cells.forEach((cell, idx) => {
+        cell.classList.remove('selected', 'highlighted', 'related');
+        
+        const row = parseInt(cell.getAttribute('data-row'));
+        const col = parseInt(cell.getAttribute('data-col'));
+
+        if (idx === selectedCellIdx) {
+          cell.classList.add('selected');
+        } else if (selVal !== 0 && userGrid[idx] === selVal) {
+          cell.classList.add('highlighted');
+        } else if (row === selRow || col === selCol || (Math.floor(row / 3) === Math.floor(selRow / 3) && Math.floor(col / 3) === Math.floor(selCol / 3))) {
+          cell.classList.add('related');
+        }
+      });
+    }
+
+    /* ═══════════════════════════════════════
+       GAMEPLAY ACTIONS
+       ═══════════════════════════════════════ */
+    function inputNumber(num) {
+      if (selectedCellIdx === null || puzzleGrid[selectedCellIdx] !== 0) return;
+
+      if (isNotesMode) {
+        if (num === 0) {
+          cellNotes[selectedCellIdx] = [];
+        } else {
+          let notes = cellNotes[selectedCellIdx];
+          if (notes.includes(num)) {
+            cellNotes[selectedCellIdx] = notes.filter(x => x !== num);
+          } else {
+            notes.push(num);
+            cellNotes[selectedCellIdx] = notes.sort();
+          }
+        }
+        userGrid[selectedCellIdx] = 0;
+      } else {
+        cellNotes[selectedCellIdx] = [];
+        userGrid[selectedCellIdx] = num;
+        
+        if (num !== 0 && num !== solutionGrid[selectedCellIdx]) {
+          mistakes++;
+          playSound('error');
+          updateMistakesCounter();
+          if (mistakes >= maxMistakes) {
+            triggerLoss();
+          }
+        } else if (num !== 0) {
+          playSound('place');
+        }
+      }
+
+      renderBoard();
+      checkWinCondition();
+    }
+
+    function toggleNotesMode() {
+      isNotesMode = !isNotesMode;
+      const btn = document.getElementById('notes-mode-btn');
+      if (isNotesMode) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+      playSound('select');
+    }
+
+    function changeDifficulty(diff) {
+      currentDifficulty = diff;
+      document.querySelectorAll('.difficulty-group .btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(`diff-${diff}`).classList.add('active');
+      generateNewPuzzle();
+    }
+
+    function generateNewPuzzle() {
+      isConfettiActive = false;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      mistakes = 0;
+      secondsElapsed = 0;
+      selectedCellIdx = null;
+      cellNotes = Array.from({length: 81}, () => []);
+      
+      updateMistakesCounter();
+      generateSudoku();
+      renderBoard();
+      startTimer();
+    }
+
+    function updateMistakesCounter() {
+      document.getElementById('mistakes-counter').textContent = `${mistakes}/${maxMistakes}`;
+      if (mistakes > 0) {
+        document.getElementById('mistakes-counter').classList.add('danger');
+      } else {
+        document.getElementById('mistakes-counter').classList.remove('danger');
+      }
+    }
+
+    function checkWinCondition() {
+      const isComplete = userGrid.every((val, idx) => val === solutionGrid[idx]);
+      if (isComplete) {
+        stopTimer();
+        playSound('win');
+        startConfetti();
+        alert("כל הכבוד! פתרת את הסודוקו בהצלחה!");
+      }
+    }
+
+    function triggerLoss() {
+      stopTimer();
+      playSound('error');
+      alert("נפסלת! עשית 3 שגיאות. נסה משחק חדש.");
+      generateNewPuzzle();
+    }
+
+    /* ═══════════════════════════════════════
+       TIMER & INITIALIZATION
+       ═══════════════════════════════════════ */
+    function startTimer() {
+      stopTimer();
+      timerInterval = setInterval(() => {
+        secondsElapsed++;
+        const minutes = Math.floor(secondsElapsed / 60);
+        const seconds = secondsElapsed % 60;
+        document.getElementById('timer').textContent = 
+          `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    // Keyboard support
+    window.addEventListener('keydown', (e) => {
+      if (selectedCellIdx === null) return;
+      if (e.key >= '1' && e.key <= '9') {
+        inputNumber(parseInt(e.key));
+      } else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') {
+        inputNumber(0);
+      }
+    });
+
+    window.onload = () => {
+      generateNewPuzzle();
+    };
+  </script>
+</body>
+</html>

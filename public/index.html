@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ניהול מחסן ומלאי - חברת פלדמן</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&display=swap');
+        body {
+            font-family: 'Assistant', sans-serif;
+        }
+        .btn-touch {
+            min-height: 56px;
+            touch-action: manipulation;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col antialiased selection:bg-blue-100 selection:text-blue-900">
+
+    <!-- Header Navigation -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                
+                <!-- Logo / Title -->
+                <div class="flex items-center space-x-3 space-x-reverse">
+                    <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white text-2xl shadow-md">
+                        <i class="fa-solid font-bold fa-boxes-stacked"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">ניהול מחסן ומלאי</h1>
+                        <p class="text-sm font-semibold text-blue-600">חברת פלדמן • מחסן מרכזי</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="flex space-x-2 space-x-reverse bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                    <button id="tab-tech-btn" onclick="switchTab('tech')" 
+                            class="px-5 py-3 rounded-lg text-lg font-bold transition-all duration-150 flex items-center gap-2 bg-white text-blue-700 shadow-sm">
+                        <i class="fa-solid fa-wrench text-xl"></i>
+                        <span>עמדת עובדים (לקחתי/החזרתי)</span>
+                    </button>
+                    <button id="tab-admin-btn" onclick="switchTab('admin')" 
+                            class="px-5 py-3 rounded-lg text-lg font-bold transition-all duration-150 flex items-center gap-2 text-slate-600 hover:text-slate-900">
+                        <i class="fa-solid fa-sliders text-xl"></i>
+                        <span>ניהול מחסן והוספת פריטים</span>
+                    </button>
+                </nav>
+
+            </div>
+        </div>
+    </header>
+
+    <!-- Notification / Toast Message Alert -->
+    <div id="toast" class="hidden fixed top-24 left-1/2 transform -translate-x-1/2 z-50 max-w-lg w-full px-4">
+        <div id="toast-content" class="bg-emerald-600 text-white text-xl font-bold p-5 rounded-2xl shadow-2xl flex items-center justify-between border-2 border-emerald-400 animate-bounce">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-circle-check text-3xl"></i>
+                <span id="toast-text">הפעולה נרשמה בהצלחה!</span>
+            </div>
+            <button onclick="hideToast()" class="text-white text-2xl font-bold opacity-80 hover:opacity-100">&times;</button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- ==================== VIEW 1: TECHNICIANS QUICK VIEW ==================== -->
+        <section id="view-tech" class="space-y-8">
+            
+            <!-- STEP 1: Select Worker -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-extrabold text-slate-800 flex items-center gap-2">
+                        <span class="w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-base">1</span>
+                        <span>מי העובד/הטכנאי המבצע?</span>
+                    </h2>
+                    <span id="selected-worker-badge" class="hidden bg-emerald-100 text-emerald-800 text-lg font-extrabold px-4 py-1.5 rounded-full border border-emerald-300">
+                        נבחר: <span id="selected-worker-name">-</span>
+                    </span>
+                </div>
+                
+                <div id="workers-buttons-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    <!-- Loaded dynamically via JavaScript -->
+                    <div class="text-slate-400 font-semibold p-4 text-center">טוען עובדים...</div>
+                </div>
+            </div>
+
+            <!-- STEP 2: Filter / Search Item -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <h2 class="text-xl font-extrabold text-slate-800 mb-4 flex items-center gap-2">
+                    <span class="w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-base">2</span>
+                    <span>איתור פריט במחסן</span>
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                    <!-- Search Input -->
+                    <div class="md:col-span-8 relative">
+                        <i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-2xl"></i>
+                        <input type="text" id="tech-search-input" onkeyup="filterItems()" 
+                               placeholder="חפש לפי שם פריט (למשל: מיסב, גלגל שיניים, מנוע)..." 
+                               class="w-full pr-14 pl-4 py-4 text-xl font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none bg-slate-50 transition">
+                    </div>
+
+                    <!-- Shelf Select Dropdown -->
+                    <div class="md:col-span-4">
+                        <select id="tech-shelf-select" onchange="filterItems()" 
+                                class="w-full py-4 px-4 text-xl font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none bg-slate-50 transition cursor-pointer">
+                            <option value="">כל המדפים (13 מדפים)</option>
+                            <!-- Shelves 1-1 to 13-4 added dynamically -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 3: Items Grid List -->
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold text-slate-700">רשימת חלפים במחסן</h3>
+                    <span id="items-count-badge" class="text-slate-500 font-bold">מציג 0 פריטים</span>
+                </div>
+
+                <div id="tech-items-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Loaded dynamically via JavaScript -->
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ==================== VIEW 2: ADMIN MANAGEMENT VIEW ==================== -->
+        <section id="view-admin" class="hidden space-y-8">
+            
+            <!-- Low Stock Warnings Banner -->
+            <div id="low-stock-box" class="bg-amber-50 rounded-2xl p-6 border-2 border-amber-200 shadow-sm">
+                <div class="flex items-center gap-3 mb-4">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 text-3xl"></i>
+                    <h2 class="text-2xl font-extrabold text-amber-900">התראות מלאי נמוך (דורש הזמנה)</h2>
+                </div>
+                <div id="low-stock-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Low stock items dynamically loaded -->
+                </div>
+            </div>
+
+            <!-- Add New Item Form -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <h2 class="text-2xl font-extrabold text-slate-800 mb-6 flex items-center gap-3">
+                    <i class="fa-solid fa-circle-plus text-blue-600"></i>
+                    <span>הוספת פריט חדש למחסן</span>
+                </h2>
+
+                <form id="add-item-form" onsubmit="handleAddItem(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Item Name -->
+                    <div class="lg:col-span-2">
+                        <label class="block text-lg font-bold text-slate-700 mb-2">שם הפריט *</label>
+                        <input type="text" id="new-item-name" required placeholder="לדוגמה: מיסב כדורי 6204" 
+                               class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none">
+                    </div>
+
+                    <!-- Category -->
+                    <div>
+                        <label class="block text-lg font-bold text-slate-700 mb-2">קטגוריה</label>
+                        <select id="new-item-category" class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none">
+                            <option value="מיסבים">מיסבים</option>
+                            <option value="גלגלי שיניים">גלגלי שיניים</option>
+                            <option value="מנועים">מנועים</option>
+                            <option value="כללי" selected>כללי</option>
+                        </select>
+                    </div>
+
+                    <!-- Shelf Location -->
+                    <div>
+                        <label class="block text-lg font-bold text-slate-700 mb-2">מיקום מדף *</label>
+                        <select id="new-item-shelf" required class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none">
+                            <!-- Populated dynamically (1-1 to 13-4) -->
+                        </select>
+                    </div>
+
+                    <!-- Initial Quantity -->
+                    <div>
+                        <label class="block text-lg font-bold text-slate-700 mb-2">כמות ראשונית במלאי</label>
+                        <input type="number" id="new-item-qty" min="0" value="1" required 
+                               class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none">
+                    </div>
+
+                    <!-- Min Quantity for Alert -->
+                    <div>
+                        <label class="block text-lg font-bold text-slate-700 mb-2">כמות מינימום להתראה</label>
+                        <input type="number" id="new-item-min-qty" min="0" value="2" required 
+                               class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none">
+                    </div>
+
+                    <!-- Unit -->
+                    <div>
+                        <label class="block text-lg font-bold text-slate-700 mb-2">יחידת מידה</label>
+                        <input type="text" id="new-item-unit" value="יחידות" required 
+                               class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none">
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full btn-touch bg-emerald-600 hover:bg-emerald-700 text-white text-xl font-extrabold rounded-xl shadow-lg hover:shadow-xl transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-plus-circle text-2xl"></i>
+                            <span>שמור פריט חדש</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Management & Inventory Table -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-extrabold text-slate-800">קטלוג פריטים קיים במחסן</h2>
+                    <button onclick="exportToCSV()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-3 rounded-xl font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-file-csv text-xl"></i>
+                        <span>ייצא דוח לאקסל</span>
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 text-lg font-extrabold border-b border-slate-200">
+                                <th class="p-4">שם הפריט</th>
+                                <th class="p-4">קטגוריה</th>
+                                <th class="p-4">מיקום מדף</th>
+                                <th class="p-4">כמות נוכחית</th>
+                                <th class="p-4">סף מינימום</th>
+                                <th class="p-4 text-center">פעולות ניהול</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-items-table" class="divide-y divide-slate-200 text-lg font-semibold">
+                            <!-- Items rows loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Audit Log / Transactions History -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <h2 class="text-2xl font-extrabold text-slate-800 mb-6 flex items-center gap-3">
+                    <i class="fa-solid fa-clock-rotate-left text-blue-600"></i>
+                    <span>יומן תנועות מלאי (מי לקח / החזיר מה ומתי)</span>
+                </h2>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 text-lg font-extrabold border-b border-slate-200">
+                                <th class="p-4">תאריך ושעה</th>
+                                <th class="p-4">שם העובד</th>
+                                <th class="p-4">פעולה</th>
+                                <th class="p-4">שם הפריט</th>
+                                <th class="p-4">כמות שונתה</th>
+                                <th class="p-4">מלאי נותר</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactions-table" class="divide-y divide-slate-200 text-base font-semibold">
+                            <!-- Log rows loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Manage Workers Section -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <h2 class="text-2xl font-extrabold text-slate-800 mb-6 flex items-center gap-3">
+                    <i class="fa-solid fa-users text-blue-600"></i>
+                    <span>ניהול עובדים וטכנאים</span>
+                </h2>
+
+                <div class="flex flex-col sm:flex-row gap-4 mb-6">
+                    <input type="text" id="new-worker-name" placeholder="שם עובד חדש..." class="flex-1 p-4 text-lg font-bold rounded-xl border-2 border-slate-200 outline-none focus:border-blue-600">
+                    <button onclick="handleAddWorker()" class="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-lg flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>הוסף עובד</span>
+                    </button>
+                </div>
+
+                <div id="admin-workers-list" class="flex flex-wrap gap-3">
+                    <!-- Workers badges loaded dynamically -->
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Quantity Modal (For taking/returning more than 1) -->
+    <div id="qty-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-200">
+            <h3 id="modal-item-title" class="text-2xl font-extrabold text-slate-900 mb-2">מיסב 6204</h3>
+            <p id="modal-item-sub" class="text-slate-600 font-bold mb-6">כמות נוכחית: 15 יחידות</p>
+
+            <div class="mb-6">
+                <label class="block text-xl font-bold text-slate-800 mb-3">בחר כמות:</label>
+                <div class="flex items-center gap-4">
+                    <button onclick="adjustModalQty(-1)" class="w-16 h-16 bg-slate-200 hover:bg-slate-300 rounded-2xl text-3xl font-extrabold flex items-center justify-center text-slate-800">-</button>
+                    <input type="number" id="modal-qty-input" value="1" min="1" class="flex-1 text-center py-3 text-3xl font-extrabold border-2 border-slate-300 rounded-2xl">
+                    <button onclick="adjustModalQty(1)" class="w-16 h-16 bg-slate-200 hover:bg-slate-300 rounded-2xl text-3xl font-extrabold flex items-center justify-center text-slate-800">+</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="closeQtyModal()" class="py-4 bg-slate-200 text-slate-800 rounded-xl text-xl font-bold hover:bg-slate-300">ביטול</button>
+                <button id="modal-confirm-btn" onclick="confirmModalAction()" class="py-4 bg-blue-600 text-white rounded-xl text-xl font-extrabold hover:bg-blue-700 shadow-md">אישור</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Frontend Script -->
+    <script>
+        let allItems = [];
+        let allWorkers = [];
+        let selectedWorker = '';
+        let currentModalAction = null; // { itemId, actionType }
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            populateShelfDropdowns();
+            loadWorkers();
+            loadItems();
+            loadTransactions();
+            loadLowStock();
+        });
+
+        // Populate Shelves (1-1 to 13-4)
+        function populateShelfDropdowns() {
+            const techShelfSelect = document.getElementById('tech-shelf-select');
+            const newShelfSelect = document.getElementById('new-item-shelf');
+
+            techShelfSelect.innerHTML = '<option value="">כל המדפים (13 מדפים)</option>';
+            newShelfSelect.innerHTML = '';
+
+            for (let shelf = 1; shelf <= 13; shelf++) {
+                for (let level = 1; level <= 4; level++) {
+                    const val = `${shelf}-${level}`;
+                    const label = `מדף ${shelf} • קומה ${level} (${val})`;
+                    
+                    techShelfSelect.innerHTML += `<option value="${val}">${label}</option>`;
+                    newShelfSelect.innerHTML += `<option value="${val}">${label}</option>`;
+                }
+            }
+        }
+
+        // Switch View Tabs
+        function switchTab(tab) {
+            const techView = document.getElementById('view-tech');
+            const adminView = document.getElementById('view-admin');
+            const techBtn = document.getElementById('tab-tech-btn');
+            const adminBtn = document.getElementById('tab-admin-btn');
+
+            if (tab === 'tech') {
+                techView.classList.remove('hidden');
+                adminView.classList.add('hidden');
+                techBtn.className = "px-5 py-3 rounded-lg text-lg font-bold transition-all duration-150 flex items-center gap-2 bg-white text-blue-700 shadow-sm";
+                adminBtn.className = "px-5 py-3 rounded-lg text-lg font-bold transition-all duration-150 flex items-center gap-2 text-slate-600 hover:text-slate-900";
+            } else {
+                techView.classList.add('hidden');
+                adminView.classList.remove('hidden');
+                adminBtn.className = "px-5 py-3 rounded-lg text-lg font-bold transition-all duration-150 flex items-center gap-2 bg-white text-blue-700 shadow-sm";
+                techBtn.className = "px-5 py-3 rounded-lg text-lg font-bold transition-all duration-150 flex items-center gap-2 text-slate-600 hover:text-slate-900";
+                loadLowStock();
+                loadTransactions();
+            }
+        }
+
+        // Fetch Workers
+        async function loadWorkers() {
+            try {
+                const res = await fetch('/api/warehouse/workers');
+                allWorkers = await res.json();
+                renderWorkers();
+            } catch (err) {
+                console.error("Error loading workers:", err);
+            }
+        }
+
+        // Render Workers Buttons
+        function renderWorkers() {
+            const container = document.getElementById('workers-buttons-list');
+            const adminContainer = document.getElementById('admin-workers-list');
+            
+            if (allWorkers.length === 0) {
+                container.innerHTML = '<div class="text-slate-400 font-semibold p-4">אין עובדים במערכת</div>';
+                return;
+            }
+
+            container.innerHTML = allWorkers.map(w => `
+                <button onclick="selectWorker('${w.full_name}')" 
+                        class="worker-btn p-4 rounded-xl text-lg font-extrabold border-2 transition-all flex flex-col items-center justify-center gap-1 ${selectedWorker === w.full_name ? 'bg-emerald-500 text-white border-emerald-600 shadow-md ring-4 ring-emerald-200' : 'bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200'}">
+                    <i class="fa-solid fa-user-gear text-2xl"></i>
+                    <span>${w.full_name}</span>
+                </button>
+            `).join('');
+
+            adminContainer.innerHTML = allWorkers.map(w => `
+                <div class="bg-slate-100 border border-slate-300 text-slate-800 text-lg font-bold px-4 py-2 rounded-xl flex items-center gap-3">
+                    <span>${w.full_name}</span>
+                </div>
+            `).join('');
+        }
+
+        // Select Worker
+        function selectWorker(name) {
+            selectedWorker = name;
+            document.getElementById('selected-worker-badge').classList.remove('hidden');
+            document.getElementById('selected-worker-name').textContent = name;
+            renderWorkers();
+        }
+
+        // Fetch Items
+        async function loadItems() {
+            try {
+                const res = await fetch('/api/warehouse/items');
+                allItems = await res.json();
+                filterItems();
+                renderAdminTable();
+            } catch (err) {
+                console.error("Error loading items:", err);
+            }
+        }
+
+        // Filter & Render Technician Items Grid
+        function filterItems() {
+            const searchTerm = document.getElementById('tech-search-input').value.trim().toLowerCase();
+            const selectedShelf = document.getElementById('tech-shelf-select').value;
+
+            const filtered = allItems.filter(item => {
+                const matchesSearch = !searchTerm || 
+                    item.name.toLowerCase().includes(searchTerm) || 
+                    (item.category && item.category.toLowerCase().includes(searchTerm)) ||
+                    item.shelf_location.toLowerCase().includes(searchTerm);
+                const matchesShelf = !selectedShelf || item.shelf_location === selectedShelf;
+                return matchesSearch && matchesShelf;
+            });
+
+            document.getElementById('items-count-badge').textContent = `מציג ${filtered.length} מתוך ${allItems.length} פריטים`;
+            renderTechItemsGrid(filtered);
+        }
+
+        // Render Technician Grid
+        function renderTechItemsGrid(items) {
+            const grid = document.getElementById('tech-items-grid');
+            if (items.length === 0) {
+                grid.innerHTML = '<div class="col-span-full bg-white p-12 text-center text-slate-500 text-2xl font-bold rounded-2xl border">לא נמצאו פריטים העונים לחיפוש</div>';
+                return;
+            }
+
+            grid.innerHTML = items.map(item => {
+                const isLowStock = item.quantity <= item.min_quantity;
+                return `
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border-2 ${isLowStock ? 'border-amber-300 bg-amber-50/30' : 'border-slate-200'} flex flex-col justify-between space-y-4">
+                        <div>
+                            <div class="flex items-start justify-between gap-2 mb-2">
+                                <h4 class="text-2xl font-extrabold text-slate-900 leading-tight">${item.name}</h4>
+                                <span class="bg-blue-100 text-blue-800 text-lg font-black px-3 py-1 rounded-xl whitespace-nowrap border border-blue-200">
+                                    מדף ${item.shelf_location}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-3 text-slate-600 font-bold text-lg mb-2">
+                                <span class="bg-slate-100 px-3 py-1 rounded-lg text-slate-700">${item.category || 'כללי'}</span>
+                            </div>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-3xl font-extrabold ${isLowStock ? 'text-amber-600' : 'text-slate-800'}">${item.quantity}</span>
+                                <span class="text-slate-500 font-bold text-lg">${item.unit || 'יחידות'} במלאי</span>
+                                ${isLowStock ? '<span class="mr-auto text-amber-700 bg-amber-100 text-sm font-extrabold px-2.5 py-1 rounded-lg">⚠️ מלאי נמוך</span>' : ''}
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="grid grid-cols-2 gap-3 pt-2">
+                            <button onclick="handleQuickAction(${item.id}, 'take', 1)" 
+                                    class="btn-touch bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-xl font-extrabold rounded-xl shadow flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-minus text-2xl"></i>
+                                <span>לקחתי 1</span>
+                            </button>
+                            <button onclick="handleQuickAction(${item.id}, 'add', 1)" 
+                                    class="btn-touch bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xl font-extrabold rounded-xl shadow flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-plus text-2xl"></i>
+                                <span>החזרתי 1</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Handle Quick Action (Take / Add)
+        async function handleQuickAction(itemId, actionType, qty = 1) {
+            if (!selectedWorker) {
+                alert("אנא בחר קודם את שם העובד בחלק העליון (שלב 1)");
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/warehouse/transaction', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        item_id: itemId,
+                        action_type: actionType,
+                        quantity_changed: qty,
+                        worker_name: selectedWorker
+                    })
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    alert(data.error || "שגיאה בביצוע הפעולה");
+                    return;
+                }
+
+                const actionText = actionType === 'take' ? 'לקח' : 'החזיר/הוסיף';
+                showToast(`הפעולה נרשמה בהצלחה! ${selectedWorker} ${actionText} ${qty} ${data.item_name} (מדף ${data.shelf_location})`);
+                
+                loadItems(); // Refresh quantities
+            } catch (err) {
+                console.error("Error submitting transaction:", err);
+                alert("שגיאה בהתחברות לשרת");
+            }
+        }
+
+        // Show Toast
+        function showToast(text) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-text').textContent = text;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 5000);
+        }
+
+        function hideToast() {
+            document.getElementById('toast').classList.add('hidden');
+        }
+
+        // Render Admin Catalog Table
+        function renderAdminTable() {
+            const tbody = document.getElementById('admin-items-table');
+            if (allItems.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400">אין פריטים במחסן</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = allItems.map(item => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-4 font-extrabold text-slate-900">${item.name}</td>
+                    <td class="p-4">${item.category || 'כללי'}</td>
+                    <td class="p-4"><span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-lg font-bold">מדף ${item.shelf_location}</span></td>
+                    <td class="p-4 font-extrabold text-xl ${item.quantity <= item.min_quantity ? 'text-amber-600' : 'text-slate-800'}">${item.quantity} ${item.unit || ''}</td>
+                    <td class="p-4 text-slate-600">${item.min_quantity}</td>
+                    <td class="p-4 text-center">
+                        <button onclick="deleteItem(${item.id})" class="text-rose-600 hover:text-rose-800 p-2 font-bold hover:bg-rose-50 rounded-lg">
+                            <i class="fa-solid fa-trash-can text-xl"></i> מחק
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Add New Item Submit Handler
+        async function handleAddItem(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-item-name').value.trim();
+            const category = document.getElementById('new-item-category').value;
+            const shelf_location = document.getElementById('new-item-shelf').value;
+            const quantity = document.getElementById('new-item-qty').value;
+            const min_quantity = document.getElementById('new-item-min-qty').value;
+            const unit = document.getElementById('new-item-unit').value;
+
+            try {
+                const res = await fetch('/api/warehouse/items', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, category, shelf_location, quantity, min_quantity, unit })
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    alert(data.error || "שגיאה בהוספת הפריט");
+                    return;
+                }
+
+                alert(`הפריט "${name}" נוסף בהצלחה למדף ${shelf_location}!`);
+                document.getElementById('add-item-form').reset();
+                loadItems();
+            } catch (err) {
+                console.error("Error adding item:", err);
+            }
+        }
+
+        // Delete Item
+        async function deleteItem(id) {
+            if (!confirm("האם אתה בטוח שברצונך למחוק פריט זה מהמחסן?")) return;
+            try {
+                await fetch(`/api/warehouse/items/${id}`, { method: 'DELETE' });
+                loadItems();
+            } catch (err) {
+                console.error("Error deleting item:", err);
+            }
+        }
+
+        // Load Low Stock Alerts
+        async function loadLowStock() {
+            try {
+                const res = await fetch('/api/warehouse/low-stock');
+                const lowItems = await res.json();
+                const container = document.getElementById('low-stock-list');
+                const box = document.getElementById('low-stock-box');
+
+                if (lowItems.length === 0) {
+                    box.classList.add('hidden');
+                    return;
+                }
+
+                box.classList.remove('hidden');
+                container.innerHTML = lowItems.map(item => `
+                    <div class="bg-white p-4 rounded-xl border border-amber-300 shadow-sm flex items-center justify-between">
+                        <div>
+                            <h5 class="font-extrabold text-slate-900 text-lg">${item.name}</h5>
+                            <p class="text-sm font-bold text-amber-700">מדף ${item.shelf_location} • במלאי: <span class="text-xl font-extrabold">${item.quantity}</span> (סף: ${item.min_quantity})</p>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error("Error loading low stock:", err);
+            }
+        }
+
+        // Load Audit Transactions
+        async function loadTransactions() {
+            try {
+                const res = await fetch('/api/warehouse/transactions');
+                const logs = await res.json();
+                const tbody = document.getElementById('transactions-table');
+
+                if (logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400">אין תנועות מלאי רשומות</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = logs.map(l => {
+                    const dateStr = new Date(l.created_at).toLocaleString('he-IL');
+                    const isTake = l.action_type === 'take';
+                    return `
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="p-4 text-slate-600">${dateStr}</td>
+                            <td class="p-4 font-extrabold text-slate-900">${l.worker_name}</td>
+                            <td class="p-4">
+                                <span class="px-3 py-1 rounded-lg font-black ${isTake ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
+                                    ${isTake ? '➖ לקח' : '➕ החזיר/הוסיף'}
+                                </span>
+                            </td>
+                            <td class="p-4 font-bold">${l.item_name}</td>
+                            <td class="p-4 font-extrabold text-lg">${l.quantity_changed}</td>
+                            <td class="p-4 text-slate-700 font-bold">${l.quantity_after}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error("Error loading transactions:", err);
+            }
+        }
+
+        // Add Worker
+        async function handleAddWorker() {
+            const input = document.getElementById('new-worker-name');
+            const name = input.value.trim();
+            if (!name) return;
+
+            try {
+                const res = await fetch('/api/warehouse/workers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ full_name: name })
+                });
+                if (res.ok) {
+                    input.value = '';
+                    loadWorkers();
+                } else {
+                    alert("שגיאה בהוספת עובד");
+                }
+            } catch (err) {
+                console.error("Error adding worker:", err);
+            }
+        }
+
+        // Export Inventory to CSV
+        function exportToCSV() {
+            if (allItems.length === 0) return alert("אין נתונים לייצוא");
+            let csvContent = "\uFEFFשם פריט,קטגוריה,מדף,כמות נוכחית,כמות מינימום\n";
+            allItems.forEach(item => {
+                csvContent += `"${item.name}","${item.category}","${item.shelf_location}",${item.quantity},${item.min_quantity}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `מלאי_מחסן_פלדמן_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
