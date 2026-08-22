@@ -55,16 +55,8 @@
         </div>
     </header>
 
-    <!-- Notification / Toast Message Alert -->
-    <div id="toast" class="hidden fixed top-24 left-1/2 transform -translate-x-1/2 z-50 max-w-lg w-full px-4">
-        <div id="toast-content" class="bg-emerald-600 text-white text-xl font-bold p-5 rounded-2xl shadow-2xl flex items-center justify-between border-2 border-emerald-400 animate-bounce">
-            <div class="flex items-center gap-3">
-                <i class="fa-solid fa-circle-check text-3xl"></i>
-                <span id="toast-text">הפעולה נרשמה בהצלחה!</span>
-            </div>
-            <button onclick="hideToast()" class="text-white text-2xl font-bold opacity-80 hover:opacity-100">&times;</button>
-        </div>
-    </div>
+    <!-- Hidden toast container -->
+    <div id="toast" class="hidden"></div>
 
     <!-- MAIN CONTENT CONTAINER -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -85,7 +77,6 @@
                 </div>
                 
                 <div id="workers-buttons-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                    <!-- Loaded dynamically via JavaScript -->
                     <div class="text-slate-400 font-semibold p-4 text-center">טוען עובדים...</div>
                 </div>
             </div>
@@ -111,7 +102,6 @@
                         <select id="tech-shelf-select" onchange="filterItems()" 
                                 class="w-full py-4 px-4 text-xl font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none bg-slate-50 transition cursor-pointer">
                             <option value="">כל המדפים (13 מדפים)</option>
-                            <!-- Shelves 1-1 to 13-4 added dynamically -->
                         </select>
                     </div>
                 </div>
@@ -152,18 +142,18 @@
                     <span>הוספת פריט חדש למחסן</span>
                 </h2>
 
-                <form id="add-item-form" onsubmit="handleAddItem(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <form id="add-item-form" onsubmit="handleAddItem(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <!-- Item Name -->
                     <div class="lg:col-span-2">
                         <label class="block text-lg font-bold text-slate-700 mb-2">שם הפריט *</label>
                         <input type="text" id="new-item-name" required placeholder="לדוגמה: מיסב כדורי 6204" 
-                               class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none">
+                               class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 outline-none">
                     </div>
 
                     <!-- Category -->
                     <div>
                         <label class="block text-lg font-bold text-slate-700 mb-2">קטגוריה</label>
-                        <select id="new-item-category" class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none">
+                        <select id="new-item-category" class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 outline-none">
                             <option value="מיסבים">מיסבים</option>
                             <option value="גלגלי שיניים">גלגלי שיניים</option>
                             <option value="מנועים">מנועים</option>
@@ -174,7 +164,7 @@
                     <!-- Shelf Location -->
                     <div>
                         <label class="block text-lg font-bold text-slate-700 mb-2">מיקום מדף *</label>
-                        <select id="new-item-shelf" required class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none">
+                        <select id="new-item-shelf" required class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 outline-none">
                             <!-- Populated dynamically (1-1 to 13-4) -->
                         </select>
                     </div>
@@ -183,28 +173,53 @@
                     <div>
                         <label class="block text-lg font-bold text-slate-700 mb-2">כמות ראשונית במלאי</label>
                         <input type="number" id="new-item-qty" min="0" value="1" required 
-                               class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none">
+                               class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 outline-none">
                     </div>
 
-                    <!-- Min Quantity for Alert -->
+                    <!-- Unit Price -->
                     <div>
-                        <label class="block text-lg font-bold text-slate-700 mb-2">כמות מינימום להתראה</label>
-                        <input type="number" id="new-item-min-qty" min="0" value="2" required 
-                               class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none">
+                        <label class="block text-lg font-bold text-slate-700 mb-2">מחיר יחידה (בש"ח)</label>
+                        <input type="number" step="0.1" id="new-item-price" placeholder="0" 
+                               class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 outline-none">
                     </div>
 
-                    <!-- Unit -->
+                    <!-- Supplier Name -->
                     <div>
-                        <label class="block text-lg font-bold text-slate-700 mb-2">יחידת מידה</label>
-                        <input type="text" id="new-item-unit" value="יחידות" required 
-                               class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none">
+                        <label class="block text-lg font-bold text-slate-700 mb-2">שם הספק</label>
+                        <input type="text" id="new-item-supplier-name" placeholder="שם חברה / ספק..." 
+                               class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 outline-none">
+                    </div>
+
+                    <!-- Supplier Phone -->
+                    <div>
+                        <label class="block text-lg font-bold text-slate-700 mb-2">טלפון להזמנות</label>
+                        <input type="tel" id="new-item-supplier-phone" placeholder="050-0000000" 
+                               class="w-full p-4 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-blue-600 outline-none">
+                    </div>
+
+                    <!-- Low Stock Alert Toggle -->
+                    <div class="lg:col-span-3 bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" id="new-item-has-alert" checked onchange="toggleMinQtyInput('new')" class="w-6 h-6 text-blue-600 rounded cursor-pointer">
+                            <label for="new-item-has-alert" class="font-extrabold text-slate-800 text-lg cursor-pointer">הפעל התראת מלאי נמוך לפריט זה</label>
+                        </div>
+                        <div id="new-min-qty-wrapper" class="flex items-center gap-2">
+                            <label class="font-bold text-slate-700">סף מינימום:</label>
+                            <input type="number" id="new-item-min-qty" min="1" value="2" class="w-28 p-2 text-lg font-bold rounded-lg border-2 border-slate-300 bg-white">
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="lg:col-span-3">
+                        <label class="block text-lg font-bold text-slate-700 mb-2">הערות לפריט</label>
+                        <textarea id="new-item-notes" rows="2" placeholder="הערות מיוחדות, דגם, מידות..." class="w-full p-4 text-lg font-semibold rounded-xl border-2 border-slate-200 focus:border-blue-600 outline-none"></textarea>
                     </div>
 
                     <!-- Submit Button -->
-                    <div class="flex items-end">
-                        <button type="submit" class="w-full btn-touch bg-emerald-600 hover:bg-emerald-700 text-white text-xl font-extrabold rounded-xl shadow-lg hover:shadow-xl transition flex items-center justify-center gap-2">
+                    <div class="lg:col-span-3">
+                        <button type="submit" class="w-full btn-touch bg-emerald-600 hover:bg-emerald-700 text-white text-xl font-extrabold rounded-xl shadow-lg transition flex items-center justify-center gap-2">
                             <i class="fa-solid fa-plus-circle text-2xl"></i>
-                            <span>שמור פריט חדש</span>
+                            <span>שמור פריט חדש למחסן</span>
                         </button>
                     </div>
                 </form>
@@ -227,8 +242,10 @@
                                 <th class="p-4">שם הפריט</th>
                                 <th class="p-4">קטגוריה</th>
                                 <th class="p-4">מיקום מדף</th>
-                                <th class="p-4">כמות נוכחית</th>
-                                <th class="p-4">סף מינימום</th>
+                                <th class="p-4">כמות במלאי</th>
+                                <th class="p-4">ספק וטלפון להזמנות</th>
+                                <th class="p-4">מחיר</th>
+                                <th class="p-4">התראת מינימום</th>
                                 <th class="p-4 text-center">פעולות ניהול</th>
                             </tr>
                         </thead>
@@ -289,25 +306,137 @@
 
     </main>
 
-    <!-- Quantity Modal (For taking/returning more than 1) -->
-    <div id="qty-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-200">
-            <h3 id="modal-item-title" class="text-2xl font-extrabold text-slate-900 mb-2">מיסב 6204</h3>
-            <p id="modal-item-sub" class="text-slate-600 font-bold mb-6">כמות נוכחית: 15 יחידות</p>
-
-            <div class="mb-6">
-                <label class="block text-xl font-bold text-slate-800 mb-3">בחר כמות:</label>
-                <div class="flex items-center gap-4">
-                    <button onclick="adjustModalQty(-1)" class="w-16 h-16 bg-slate-200 hover:bg-slate-300 rounded-2xl text-3xl font-extrabold flex items-center justify-center text-slate-800">-</button>
-                    <input type="number" id="modal-qty-input" value="1" min="1" class="flex-1 text-center py-3 text-3xl font-extrabold border-2 border-slate-300 rounded-2xl">
-                    <button onclick="adjustModalQty(1)" class="w-16 h-16 bg-slate-200 hover:bg-slate-300 rounded-2xl text-3xl font-extrabold flex items-center justify-center text-slate-800">+</button>
+    <!-- Modal 1: Item Details & Supplier Modal -->
+    <div id="details-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-slate-200 space-y-6">
+            <div class="flex items-start justify-between border-b pb-4">
+                <div>
+                    <h3 id="details-item-name" class="text-3xl font-extrabold text-slate-900">שם פריט</h3>
+                    <span id="details-shelf-badge" class="inline-block mt-2 bg-blue-100 text-blue-800 text-lg font-black px-3 py-1 rounded-xl">מדף 1-1</span>
                 </div>
+                <button onclick="closeDetailsModal()" class="text-slate-400 hover:text-slate-600 text-3xl font-bold">&times;</button>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
-                <button onclick="closeQtyModal()" class="py-4 bg-slate-200 text-slate-800 rounded-xl text-xl font-bold hover:bg-slate-300">ביטול</button>
-                <button id="modal-confirm-btn" onclick="confirmModalAction()" class="py-4 bg-blue-600 text-white rounded-xl text-xl font-extrabold hover:bg-blue-700 shadow-md">אישור</button>
+                <div class="bg-slate-50 p-4 rounded-2xl border">
+                    <span class="block text-slate-500 font-bold text-sm">כמות במלאי</span>
+                    <span id="details-quantity" class="text-3xl font-extrabold text-slate-800">0</span>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-2xl border">
+                    <span class="block text-slate-500 font-bold text-sm">מחיר יחידה</span>
+                    <span id="details-price" class="text-3xl font-extrabold text-emerald-700">₪0</span>
+                </div>
             </div>
+
+            <!-- Supplier Info Box -->
+            <div class="bg-blue-50/60 p-5 rounded-2xl border border-blue-200 space-y-3">
+                <h4 class="text-xl font-extrabold text-blue-900 flex items-center gap-2">
+                    <i class="fa-solid fa-truck-field text-blue-600"></i>
+                    <span>פרטי ספק והזמנה</span>
+                </h4>
+                <div class="text-lg font-bold text-slate-700">
+                    <span>שם ספק: </span>
+                    <span id="details-supplier-name" class="font-extrabold text-slate-900">-</span>
+                </div>
+                <div class="text-lg font-bold text-slate-700 flex items-center justify-between">
+                    <span>טלפון להזמנה: </span>
+                    <a id="details-supplier-phone-link" href="#" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-extrabold text-lg flex items-center gap-2 shadow">
+                        <i class="fa-solid fa-phone"></i>
+                        <span id="details-supplier-phone">-</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Notes Box -->
+            <div class="bg-slate-50 p-4 rounded-2xl border">
+                <span class="block text-slate-500 font-bold text-sm mb-1">הערות לפריט</span>
+                <p id="details-notes" class="text-lg font-semibold text-slate-800 whitespace-pre-wrap">אין הערות</p>
+            </div>
+
+            <!-- Alert Status -->
+            <div class="flex items-center justify-between bg-amber-50 p-4 rounded-2xl border border-amber-200">
+                <span class="text-base font-extrabold text-amber-900">סטטוס התראת מלאי נמוך:</span>
+                <span id="details-alert-status" class="text-base font-black px-3 py-1 rounded-lg bg-amber-200 text-amber-900">פעיל</span>
+            </div>
+
+            <div>
+                <button onclick="closeDetailsModal()" class="w-full py-4 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xl font-bold">סגור</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2: Edit Item Modal -->
+    <div id="edit-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-8 max-w-2xl w-full shadow-2xl border border-slate-200 space-y-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b pb-4">
+                <h3 class="text-2xl font-extrabold text-slate-900">עריכת פריט ופרטי ספק</h3>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 text-3xl font-bold">&times;</button>
+            </div>
+
+            <form id="edit-item-form" onsubmit="handleSaveEditItem(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input type="hidden" id="edit-item-id">
+                
+                <div class="md:col-span-2">
+                    <label class="block font-bold text-slate-700 mb-1">שם הפריט *</label>
+                    <input type="text" id="edit-item-name" required class="w-full p-3 font-bold rounded-xl border-2 border-slate-200">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">קטגוריה</label>
+                    <select id="edit-item-category" class="w-full p-3 font-bold rounded-xl border-2 border-slate-200">
+                        <option value="מיסבים">מיסבים</option>
+                        <option value="גלגלי שיניים">גלגלי שיניים</option>
+                        <option value="מנועים">מנועים</option>
+                        <option value="כללי">כללי</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">מיקום מדף *</label>
+                    <select id="edit-item-shelf" required class="w-full p-3 font-bold rounded-xl border-2 border-slate-200"></select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">כמות במלאי</label>
+                    <input type="number" id="edit-item-qty" min="0" required class="w-full p-3 font-bold rounded-xl border-2 border-slate-200">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">מחיר יחידה (בש"ח)</label>
+                    <input type="number" step="0.1" id="edit-item-price" class="w-full p-3 font-bold rounded-xl border-2 border-slate-200">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">שם הספק</label>
+                    <input type="text" id="edit-item-supplier-name" placeholder="שם חברה / ספק..." class="w-full p-3 font-bold rounded-xl border-2 border-slate-200">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">טלפון להזמנות</label>
+                    <input type="tel" id="edit-item-supplier-phone" placeholder="050-0000000" class="w-full p-3 font-bold rounded-xl border-2 border-slate-200">
+                </div>
+
+                <div class="md:col-span-2 bg-slate-50 p-4 rounded-xl border">
+                    <div class="flex items-center gap-3 mb-2">
+                        <input type="checkbox" id="edit-item-has-alert" onchange="toggleMinQtyInput('edit')" class="w-6 h-6 text-blue-600 rounded cursor-pointer">
+                        <label for="edit-item-has-alert" class="font-extrabold text-slate-800 text-lg cursor-pointer">הפעל התראת מלאי נמוך לפריט זה</label>
+                    </div>
+                    <div id="edit-min-qty-wrapper" class="mt-2 flex items-center gap-2">
+                        <label class="font-bold text-slate-700">סף מינימום:</label>
+                        <input type="number" id="edit-item-min-qty" min="1" value="2" class="w-32 p-2 text-lg font-bold rounded-lg border-2 border-slate-300 bg-white">
+                    </div>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block font-bold text-slate-700 mb-1">הערות לפריט</label>
+                    <textarea id="edit-item-notes" rows="3" placeholder="הערות מיוחדות, מידות, דגם..." class="w-full p-3 font-semibold rounded-xl border-2 border-slate-200"></textarea>
+                </div>
+
+                <div class="md:col-span-2 flex gap-3 pt-2">
+                    <button type="button" onclick="closeEditModal()" class="flex-1 py-4 bg-slate-200 text-slate-800 font-bold rounded-xl">ביטול</button>
+                    <button type="submit" class="flex-1 py-4 bg-blue-600 text-white font-extrabold rounded-xl">שמור שינויים</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -316,7 +445,6 @@
         let allItems = [];
         let allWorkers = [];
         let selectedWorker = '';
-        let currentModalAction = null; // { itemId, actionType }
 
         // Initialize App
         document.addEventListener('DOMContentLoaded', () => {
@@ -331,9 +459,11 @@
         function populateShelfDropdowns() {
             const techShelfSelect = document.getElementById('tech-shelf-select');
             const newShelfSelect = document.getElementById('new-item-shelf');
+            const editShelfSelect = document.getElementById('edit-item-shelf');
 
             techShelfSelect.innerHTML = '<option value="">כל המדפים (13 מדפים)</option>';
             newShelfSelect.innerHTML = '';
+            editShelfSelect.innerHTML = '';
 
             for (let shelf = 1; shelf <= 13; shelf++) {
                 for (let level = 1; level <= 4; level++) {
@@ -342,7 +472,19 @@
                     
                     techShelfSelect.innerHTML += `<option value="${val}">${label}</option>`;
                     newShelfSelect.innerHTML += `<option value="${val}">${label}</option>`;
+                    editShelfSelect.innerHTML += `<option value="${val}">${label}</option>`;
                 }
+            }
+        }
+
+        // Toggle Min Qty Input Visibility
+        function toggleMinQtyInput(mode) {
+            if (mode === 'new') {
+                const checked = document.getElementById('new-item-has-alert').checked;
+                document.getElementById('new-min-qty-wrapper').style.display = checked ? 'flex' : 'none';
+            } else {
+                const checked = document.getElementById('edit-item-has-alert').checked;
+                document.getElementById('edit-min-qty-wrapper').style.display = checked ? 'flex' : 'none';
             }
         }
 
@@ -483,6 +625,7 @@
                 const matchesSearch = !searchTerm || 
                     item.name.toLowerCase().includes(searchTerm) || 
                     (item.category && item.category.toLowerCase().includes(searchTerm)) ||
+                    (item.supplier_name && item.supplier_name.toLowerCase().includes(searchTerm)) ||
                     item.shelf_location.toLowerCase().includes(searchTerm);
                 const matchesShelf = !selectedShelf || item.shelf_location === selectedShelf;
                 return matchesSearch && matchesShelf;
@@ -510,7 +653,8 @@
             }
 
             grid.innerHTML = items.map(item => {
-                const isLowStock = item.quantity <= item.min_quantity;
+                const hasAlert = item.has_min_alert !== 0;
+                const isLowStock = hasAlert && item.quantity <= item.min_quantity;
                 return `
                     <div class="bg-white rounded-2xl p-6 shadow-sm border-2 ${isLowStock ? 'border-amber-300 bg-amber-50/30' : 'border-slate-200'} flex flex-col justify-between space-y-4">
                         <div>
@@ -520,14 +664,21 @@
                                     מדף ${item.shelf_location}
                                 </span>
                             </div>
-                            <div class="flex items-center gap-3 text-slate-600 font-bold text-lg mb-2">
+                            <div class="flex items-center gap-2 text-slate-600 font-bold text-base mb-2">
                                 <span class="bg-slate-100 px-3 py-1 rounded-lg text-slate-700">${item.category || 'כללי'}</span>
+                                ${item.price ? `<span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg">₪${item.price}</span>` : ''}
                             </div>
-                            <div class="flex items-baseline gap-2">
-                                <span class="text-3xl font-extrabold ${isLowStock ? 'text-amber-600' : 'text-slate-800'}">${item.quantity}</span>
-                                <span class="text-slate-500 font-bold text-lg">${item.unit || 'יחידות'} במלאי</span>
-                                ${isLowStock ? '<span class="mr-auto text-amber-700 bg-amber-100 text-sm font-extrabold px-2.5 py-1 rounded-lg">⚠️ מלאי נמוך</span>' : ''}
+                            <div class="flex items-baseline justify-between">
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-4xl font-extrabold ${isLowStock ? 'text-amber-600' : 'text-slate-800'}">${item.quantity}</span>
+                                    <span class="text-slate-500 font-bold text-lg">במלאי</span>
+                                </div>
+                                <button onclick="openDetailsModal(${item.id})" class="text-blue-600 hover:text-blue-800 text-base font-bold bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl border border-blue-200 flex items-center gap-1.5 transition">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                    <span>פרטים וספק</span>
+                                </button>
                             </div>
+                            ${isLowStock ? '<div class="mt-2 text-amber-700 bg-amber-100 text-sm font-extrabold px-2.5 py-1 rounded-lg inline-block">⚠️ מלאי נמוך</div>' : ''}
                         </div>
 
                         <!-- Action Buttons -->
@@ -574,9 +725,6 @@
                     return;
                 }
 
-                const actionText = actionType === 'take' ? 'לקח' : 'החזיר/הוסיף';
-                showToast(`הפעולה נרשמה בהצלחה! ${selectedWorker} ${actionText} ${qty} ${data.item_name} (מדף ${data.shelf_location})`);
-                
                 loadItems(); // Refresh quantities
             } catch (err) {
                 console.error("Error submitting transaction:", err);
@@ -584,38 +732,150 @@
             }
         }
 
-        // Show Toast (Disabled per user request)
-        function showToast(text) {
-            // Notifications disabled
-            return;
+        // Open Details Modal
+        function openDetailsModal(itemId) {
+            const item = allItems.find(i => Number(i.id) === Number(itemId));
+            if (!item) return;
+
+            document.getElementById('details-item-name').textContent = item.name;
+            document.getElementById('details-shelf-badge').textContent = `מדף ${item.shelf_location}`;
+            document.getElementById('details-quantity').textContent = item.quantity;
+            document.getElementById('details-price').textContent = item.price ? `₪${item.price}` : 'לא הוגדר';
+            document.getElementById('details-supplier-name').textContent = item.supplier_name || 'לא הוגדר';
+            
+            const phoneEl = document.getElementById('details-supplier-phone');
+            const phoneLink = document.getElementById('details-supplier-phone-link');
+            if (item.supplier_phone && item.supplier_phone.trim()) {
+                phoneEl.textContent = item.supplier_phone;
+                phoneLink.href = `tel:${item.supplier_phone.trim()}`;
+                phoneLink.style.display = 'inline-flex';
+            } else {
+                phoneEl.textContent = 'אין טלפון';
+                phoneLink.href = '#';
+                phoneLink.style.display = 'none';
+            }
+
+            document.getElementById('details-notes').textContent = item.notes && item.notes.trim() ? item.notes : 'אין הערות נוספות';
+
+            const alertEl = document.getElementById('details-alert-status');
+            if (item.has_min_alert === 0) {
+                alertEl.textContent = 'מבוטל (ללא התראה)';
+                alertEl.className = 'text-base font-bold px-3 py-1 rounded-lg bg-slate-200 text-slate-700';
+            } else {
+                alertEl.textContent = `פעיל (סף: ${item.min_quantity})`;
+                alertEl.className = 'text-base font-black px-3 py-1 rounded-lg bg-amber-200 text-amber-900';
+            }
+
+            document.getElementById('details-modal').classList.remove('hidden');
         }
 
-        function hideToast() {
-            document.getElementById('toast').classList.add('hidden');
+        function closeDetailsModal() {
+            document.getElementById('details-modal').classList.add('hidden');
+        }
+
+        // Open Edit Modal
+        function openEditModal(itemId) {
+            const item = allItems.find(i => Number(i.id) === Number(itemId));
+            if (!item) return;
+
+            document.getElementById('edit-item-id').value = item.id;
+            document.getElementById('edit-item-name').value = item.name;
+            document.getElementById('edit-item-category').value = item.category || 'כללי';
+            document.getElementById('edit-item-shelf').value = item.shelf_location;
+            document.getElementById('edit-item-qty').value = item.quantity;
+            document.getElementById('edit-item-price').value = item.price || '';
+            document.getElementById('edit-item-supplier-name').value = item.supplier_name || '';
+            document.getElementById('edit-item-supplier-phone').value = item.supplier_phone || '';
+            document.getElementById('edit-item-notes').value = item.notes || '';
+
+            const hasAlert = item.has_min_alert !== 0;
+            document.getElementById('edit-item-has-alert').checked = hasAlert;
+            document.getElementById('edit-item-min-qty').value = item.min_quantity || 2;
+            toggleMinQtyInput('edit');
+
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        }
+
+        // Save Edit Item Handler
+        async function handleSaveEditItem(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-item-id').value;
+            const name = document.getElementById('edit-item-name').value.trim();
+            const category = document.getElementById('edit-item-category').value;
+            const shelf_location = document.getElementById('edit-item-shelf').value;
+            const quantity = document.getElementById('edit-item-qty').value;
+            const price = document.getElementById('edit-item-price').value;
+            const supplier_name = document.getElementById('edit-item-supplier-name').value.trim();
+            const supplier_phone = document.getElementById('edit-item-supplier-phone').value.trim();
+            const notes = document.getElementById('edit-item-notes').value.trim();
+
+            const has_min_alert = document.getElementById('edit-item-has-alert').checked ? 1 : 0;
+            const min_quantity = document.getElementById('edit-item-min-qty').value;
+
+            try {
+                const res = await fetch(`/api/warehouse/items/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, category, shelf_location, quantity, min_quantity, has_min_alert, supplier_name, supplier_phone, price, notes })
+                });
+
+                if (res.ok) {
+                    closeEditModal();
+                    loadItems();
+                } else {
+                    const data = await res.json();
+                    alert(data.error || "שגיאה בעדכון הפריט");
+                }
+            } catch (err) {
+                console.error("Error saving item edit:", err);
+            }
         }
 
         // Render Admin Catalog Table
         function renderAdminTable() {
             const tbody = document.getElementById('admin-items-table');
             if (allItems.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400">אין פריטים במחסן</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-400">אין פריטים במחסן</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = allItems.map(item => `
-                <tr class="hover:bg-slate-50 transition">
-                    <td class="p-4 font-extrabold text-slate-900">${item.name}</td>
-                    <td class="p-4">${item.category || 'כללי'}</td>
-                    <td class="p-4"><span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-lg font-bold">מדף ${item.shelf_location}</span></td>
-                    <td class="p-4 font-extrabold text-xl ${item.quantity <= item.min_quantity ? 'text-amber-600' : 'text-slate-800'}">${item.quantity} ${item.unit || ''}</td>
-                    <td class="p-4 text-slate-600">${item.min_quantity}</td>
-                    <td class="p-4 text-center">
-                        <button onclick="deleteItem(${item.id})" class="text-rose-600 hover:text-rose-800 p-2 font-bold hover:bg-rose-50 rounded-lg">
-                            <i class="fa-solid fa-trash-can text-xl"></i> מחק
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = allItems.map(item => {
+                const hasAlert = item.has_min_alert !== 0;
+                const isLow = hasAlert && item.quantity <= item.min_quantity;
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4 font-extrabold text-slate-900">${item.name}</td>
+                        <td class="p-4">${item.category || 'כללי'}</td>
+                        <td class="p-4"><span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-lg font-bold">מדף ${item.shelf_location}</span></td>
+                        <td class="p-4 font-extrabold text-xl ${isLow ? 'text-amber-600' : 'text-slate-800'}">${item.quantity}</td>
+                        <td class="p-4">
+                            ${item.supplier_name ? `<div class="font-bold text-slate-900">${item.supplier_name}</div>` : '<span class="text-slate-400">-</span>'}
+                            ${item.supplier_phone ? `<a href="tel:${item.supplier_phone}" class="text-sm font-bold text-emerald-700 hover:underline"><i class="fa-solid fa-phone text-xs"></i> ${item.supplier_phone}</a>` : ''}
+                        </td>
+                        <td class="p-4 font-bold text-emerald-800">${item.price ? `₪${item.price}` : '-'}</td>
+                        <td class="p-4">
+                            ${hasAlert ? `<span class="bg-amber-100 text-amber-900 px-2.5 py-1 rounded-lg text-sm font-extrabold">סף: ${item.min_quantity}</span>` : '<span class="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-lg text-sm font-bold">מבוטל</span>'}
+                        </td>
+                        <td class="p-4 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                                <button onclick="openDetailsModal(${item.id})" class="text-blue-600 hover:text-blue-800 p-2 font-bold hover:bg-blue-50 rounded-lg" title="פרטים מלאים וספק">
+                                    <i class="fa-solid fa-circle-info text-xl"></i>
+                                </button>
+                                <button onclick="openEditModal(${item.id})" class="text-amber-600 hover:text-amber-800 p-2 font-bold hover:bg-amber-50 rounded-lg" title="ערוך פריט וספק">
+                                    <i class="fa-solid fa-pen text-xl"></i>
+                                </button>
+                                <button onclick="deleteItem(${item.id})" class="text-rose-600 hover:text-rose-800 p-2 font-bold hover:bg-rose-50 rounded-lg" title="מחק פריט">
+                                    <i class="fa-solid fa-trash-can text-xl"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         // Add New Item Submit Handler
@@ -625,14 +885,19 @@
             const category = document.getElementById('new-item-category').value;
             const shelf_location = document.getElementById('new-item-shelf').value;
             const quantity = document.getElementById('new-item-qty').value;
+            const price = document.getElementById('new-item-price').value;
+            const supplier_name = document.getElementById('new-item-supplier-name').value.trim();
+            const supplier_phone = document.getElementById('new-item-supplier-phone').value.trim();
+            const notes = document.getElementById('new-item-notes').value.trim();
+            
+            const has_min_alert = document.getElementById('new-item-has-alert').checked ? 1 : 0;
             const min_quantity = document.getElementById('new-item-min-qty').value;
-            const unit = document.getElementById('new-item-unit').value;
 
             try {
                 const res = await fetch('/api/warehouse/items', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, category, shelf_location, quantity, min_quantity, unit })
+                    body: JSON.stringify({ name, category, shelf_location, quantity, min_quantity, has_min_alert, supplier_name, supplier_phone, price, notes })
                 });
 
                 const data = await res.json();
@@ -643,6 +908,7 @@
 
                 alert(`הפריט "${name}" נוסף בהצלחה למדף ${shelf_location}!`);
                 document.getElementById('add-item-form').reset();
+                toggleMinQtyInput('new');
                 loadItems();
             } catch (err) {
                 console.error("Error adding item:", err);
@@ -679,6 +945,7 @@
                         <div>
                             <h5 class="font-extrabold text-slate-900 text-lg">${item.name}</h5>
                             <p class="text-sm font-bold text-amber-700">מדף ${item.shelf_location} • במלאי: <span class="text-xl font-extrabold">${item.quantity}</span> (סף: ${item.min_quantity})</p>
+                            ${item.supplier_phone ? `<a href="tel:${item.supplier_phone}" class="text-xs font-bold text-emerald-700 underline mt-1 inline-block"><i class="fa-solid fa-phone"></i> חייג לספק: ${item.supplier_phone} (${item.supplier_name || ''})</a>` : ''}
                         </div>
                     </div>
                 `).join('');
@@ -748,10 +1015,9 @@
         // Export Inventory to CSV
         function exportToCSV() {
             if (allItems.length === 0) return alert("אין נתונים לייצוא");
-            let csvContent = "\uFEFFשם פריט,קטגוריה,מדף,כמות נוכחית,כמות מינימום\n";
+            let csvContent = "\uFEFFשם פריט,קטגוריה,מדף,כמות נוכחית,מחיר,ספק,טלפון להזמנה,הערות\n";
             allItems.forEach(item => {
-                // Using =""${item.shelf_location}"" forces Excel to treat shelf location as text (e.g., 3-1 instead of Jan-3)
-                csvContent += `"${item.name}","${item.category}","=""${item.shelf_location}""",${item.quantity},${item.min_quantity}\n`;
+                csvContent += `"${item.name}","${item.category || ''}","=""${item.shelf_location}""",${item.quantity},${item.price || 0},"${item.supplier_name || ''}","${item.supplier_phone || ''}","${item.notes || ''}"\n`;
             });
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

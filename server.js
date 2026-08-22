@@ -412,10 +412,10 @@ app.get('/api/warehouse/items', async (req, res) => {
     }
 });
 
-// Get low stock items
+// Get low stock items (only for items with has_min_alert = 1)
 app.get('/api/warehouse/low-stock', async (req, res) => {
     try {
-        const result = await warehouseDb.execute("SELECT * FROM inventory_items WHERE quantity <= min_quantity ORDER BY quantity ASC, name ASC");
+        const result = await warehouseDb.execute("SELECT * FROM inventory_items WHERE has_min_alert = 1 AND quantity <= min_quantity ORDER BY quantity ASC, name ASC");
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -424,19 +424,21 @@ app.get('/api/warehouse/low-stock', async (req, res) => {
 
 // Add new inventory item
 app.post('/api/warehouse/items', async (req, res) => {
-    const { name, category, shelf_location, quantity, min_quantity, unit, notes } = req.body;
+    const { name, category, shelf_location, quantity, min_quantity, has_min_alert, supplier_name, supplier_phone, price, notes } = req.body;
     if (!name || !shelf_location) {
         return res.status(400).json({ error: 'שם פריט ומיקום מדף הם שדות חובה' });
     }
 
     const initQty = parseInt(quantity) || 0;
     const minQty = parseInt(min_quantity) || 1;
+    const alertFlag = has_min_alert === false || has_min_alert === 0 || has_min_alert === '0' ? 0 : 1;
+    const itemPrice = parseFloat(price) || 0;
 
     try {
         const result = await warehouseDb.execute({
-            sql: `INSERT INTO inventory_items (name, category, shelf_location, quantity, min_quantity, unit, notes) 
-                  VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            args: [name.trim(), category || 'כללי', shelf_location.trim(), initQty, minQty, unit || 'יחידות', notes || '']
+            sql: `INSERT INTO inventory_items (name, category, shelf_location, quantity, min_quantity, has_min_alert, supplier_name, supplier_phone, price, notes) 
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            args: [name.trim(), category || 'כללי', shelf_location.trim(), initQty, minQty, alertFlag, supplier_name || '', supplier_phone || '', itemPrice, notes || '']
         });
 
         const newItemId = Number(result.lastInsertRowid);
@@ -458,14 +460,17 @@ app.post('/api/warehouse/items', async (req, res) => {
 // Edit existing item
 app.put('/api/warehouse/items/:id', async (req, res) => {
     const itemId = req.params.id;
-    const { name, category, shelf_location, quantity, min_quantity, notes } = req.body;
+    const { name, category, shelf_location, quantity, min_quantity, has_min_alert, supplier_name, supplier_phone, price, notes } = req.body;
+
+    const alertFlag = has_min_alert === false || has_min_alert === 0 || has_min_alert === '0' ? 0 : 1;
+    const itemPrice = parseFloat(price) || 0;
 
     try {
         await warehouseDb.execute({
             sql: `UPDATE inventory_items 
-                  SET name = ?, category = ?, shelf_location = ?, quantity = ?, min_quantity = ?, notes = ?, updated_at = CURRENT_TIMESTAMP 
+                  SET name = ?, category = ?, shelf_location = ?, quantity = ?, min_quantity = ?, has_min_alert = ?, supplier_name = ?, supplier_phone = ?, price = ?, notes = ?, updated_at = CURRENT_TIMESTAMP 
                   WHERE id = ?`,
-            args: [name, category, shelf_location, parseInt(quantity) || 0, parseInt(min_quantity) || 1, notes || '', itemId]
+            args: [name, category, shelf_location, parseInt(quantity) || 0, parseInt(min_quantity) || 1, alertFlag, supplier_name || '', supplier_phone || '', itemPrice, notes || '', itemId]
         });
         res.json({ success: true });
     } catch (err) {
