@@ -327,85 +327,104 @@ app.post('/api/audit-logs/override', (req, res) => {
 // ==================== WAREHOUSE ROUTES (ניהול מחסן ומלאי) ====================
 
 // Get all inventory workers
-app.get('/api/warehouse/workers', (req, res) => {
-    warehouseDb.all("SELECT * FROM inventory_workers ORDER BY full_name ASC", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
+app.get('/api/warehouse/workers', async (req, res) => {
+    try {
+        const result = await warehouseDb.execute("SELECT * FROM inventory_workers ORDER BY full_name ASC");
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Add new worker
-app.post('/api/warehouse/workers', (req, res) => {
+app.post('/api/warehouse/workers', async (req, res) => {
     const { full_name } = req.body;
     if (!full_name || !full_name.trim()) {
         return res.status(400).json({ error: 'שם עובד הוא שדה חובה' });
     }
-    warehouseDb.run("INSERT INTO inventory_workers (full_name) VALUES (?)", [full_name.trim()], function(err) {
-        if (err) return res.status(400).json({ error: 'עובד בשם זה כבר קיים במערכת' });
-        res.json({ success: true, id: this.lastID, full_name: full_name.trim() });
-    });
+    try {
+        const result = await warehouseDb.execute({
+            sql: "INSERT INTO inventory_workers (full_name) VALUES (?)",
+            args: [full_name.trim()]
+        });
+        res.json({ success: true, id: Number(result.lastInsertRowid), full_name: full_name.trim() });
+    } catch (err) {
+        res.status(400).json({ error: 'עובד בשם זה כבר קיים במערכת' });
+    }
 });
 
 // Edit worker name
-app.put('/api/warehouse/workers/:id', (req, res) => {
+app.put('/api/warehouse/workers/:id', async (req, res) => {
     const workerId = req.params.id;
     const { full_name } = req.body;
     if (!full_name || !full_name.trim()) {
         return res.status(400).json({ error: 'שם עובד הוא שדה חובה' });
     }
-    warehouseDb.run("UPDATE inventory_workers SET full_name = ? WHERE id = ?", [full_name.trim(), workerId], function(err) {
-        if (err) return res.status(400).json({ error: 'עובד בשם זה כבר קיים' });
+    try {
+        await warehouseDb.execute({
+            sql: "UPDATE inventory_workers SET full_name = ? WHERE id = ?",
+            args: [full_name.trim(), workerId]
+        });
         res.json({ success: true });
-    });
+    } catch (err) {
+        res.status(400).json({ error: 'עובד בשם זה כבר קיים' });
+    }
 });
 
 // Delete worker
-app.delete('/api/warehouse/workers/:id', (req, res) => {
+app.delete('/api/warehouse/workers/:id', async (req, res) => {
     const workerId = req.params.id;
-    warehouseDb.run("DELETE FROM inventory_workers WHERE id = ?", [workerId], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        await warehouseDb.execute({
+            sql: "DELETE FROM inventory_workers WHERE id = ?",
+            args: [workerId]
+        });
         res.json({ success: true });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Get inventory items (sorted by physical shelf location 1-1 to 13-4)
-app.get('/api/warehouse/items', (req, res) => {
+app.get('/api/warehouse/items', async (req, res) => {
     const { search, shelf } = req.query;
     let query = "SELECT * FROM inventory_items WHERE 1=1";
-    const params = [];
+    const args = [];
 
     if (search) {
         query += " AND (name LIKE ? OR category LIKE ? OR shelf_location LIKE ?)";
         const term = `%${search}%`;
-        params.push(term, term, term);
+        args.push(term, term, term);
     }
 
     if (shelf) {
         query += " AND shelf_location = ?";
-        params.push(shelf);
+        args.push(shelf);
     }
 
-    // Natural sort by shelf number (1 to 13), level (1 to 4), then item name
     query += " ORDER BY CAST(substr(shelf_location, 1, instr(shelf_location, '-') - 1) AS INTEGER) ASC, CAST(substr(shelf_location, instr(shelf_location, '-') + 1) AS INTEGER) ASC, name ASC";
 
-    warehouseDb.all(query, params, (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
+    try {
+        const result = await warehouseDb.execute({ sql: query, args: args });
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Get low stock items
-app.get('/api/warehouse/low-stock', (req, res) => {
-    warehouseDb.all("SELECT * FROM inventory_items WHERE quantity <= min_quantity ORDER BY quantity ASC, name ASC", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
+app.get('/api/warehouse/low-stock', async (req, res) => {
+    try {
+        const result = await warehouseDb.execute("SELECT * FROM inventory_items WHERE quantity <= min_quantity ORDER BY quantity ASC, name ASC");
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Add new inventory item
-app.post('/api/warehouse/items', (req, res) => {
+app.post('/api/warehouse/items', async (req, res) => {
     const { name, category, shelf_location, quantity, min_quantity, unit, notes } = req.body;
-
     if (!name || !shelf_location) {
         return res.status(400).json({ error: 'שם פריט ומיקום מדף הם שדות חובה' });
     }
@@ -413,57 +432,63 @@ app.post('/api/warehouse/items', (req, res) => {
     const initQty = parseInt(quantity) || 0;
     const minQty = parseInt(min_quantity) || 1;
 
-    warehouseDb.run(
-        `INSERT INTO inventory_items (name, category, shelf_location, quantity, min_quantity, unit, notes) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [name.trim(), category || 'כללי', shelf_location.trim(), initQty, minQty, unit || 'יחידות', notes || ''],
-        function(err) {
-            if (err) return res.status(400).json({ error: 'קיים כבר פריט בשם זה במחסן' });
-            
-            const newItemId = this.lastID;
-            
-            // Record creation log if initial quantity > 0
-            if (initQty > 0) {
-                warehouseDb.run(
-                    `INSERT INTO inventory_transactions (item_id, item_name, action_type, quantity_changed, quantity_after, worker_name) 
-                     VALUES (?, ?, 'add', ?, ?, 'מנהל מחסן (הוספת פריט חדש)')`,
-                    [newItemId, name.trim(), initQty, initQty]
-                );
-            }
+    try {
+        const result = await warehouseDb.execute({
+            sql: `INSERT INTO inventory_items (name, category, shelf_location, quantity, min_quantity, unit, notes) 
+                  VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            args: [name.trim(), category || 'כללי', shelf_location.trim(), initQty, minQty, unit || 'יחידות', notes || '']
+        });
 
-            res.json({ success: true, id: newItemId });
+        const newItemId = Number(result.lastInsertRowid);
+
+        if (initQty > 0) {
+            await warehouseDb.execute({
+                sql: `INSERT INTO inventory_transactions (item_id, item_name, action_type, quantity_changed, quantity_after, worker_name) 
+                      VALUES (?, ?, 'add', ?, ?, 'מנהל מחסן (הוספת פריט חדש)')`,
+                args: [newItemId, name.trim(), initQty, initQty]
+            });
         }
-    );
+
+        res.json({ success: true, id: newItemId });
+    } catch (err) {
+        res.status(400).json({ error: 'קיים כבר פריט בשם זה במחסן' });
+    }
 });
 
 // Edit existing item
-app.put('/api/warehouse/items/:id', (req, res) => {
+app.put('/api/warehouse/items/:id', async (req, res) => {
     const itemId = req.params.id;
     const { name, category, shelf_location, quantity, min_quantity, notes } = req.body;
 
-    warehouseDb.run(
-        `UPDATE inventory_items 
-         SET name = ?, category = ?, shelf_location = ?, quantity = ?, min_quantity = ?, notes = ?, updated_at = CURRENT_TIMESTAMP 
-         WHERE id = ?`,
-        [name, category, shelf_location, parseInt(quantity) || 0, parseInt(min_quantity) || 1, notes || '', itemId],
-        function(err) {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ success: true });
-        }
-    );
+    try {
+        await warehouseDb.execute({
+            sql: `UPDATE inventory_items 
+                  SET name = ?, category = ?, shelf_location = ?, quantity = ?, min_quantity = ?, notes = ?, updated_at = CURRENT_TIMESTAMP 
+                  WHERE id = ?`,
+            args: [name, category, shelf_location, parseInt(quantity) || 0, parseInt(min_quantity) || 1, notes || '', itemId]
+        });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Delete item
-app.delete('/api/warehouse/items/:id', (req, res) => {
+app.delete('/api/warehouse/items/:id', async (req, res) => {
     const itemId = req.params.id;
-    warehouseDb.run("DELETE FROM inventory_items WHERE id = ?", [itemId], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        await warehouseDb.execute({
+            sql: "DELETE FROM inventory_items WHERE id = ?",
+            args: [itemId]
+        });
         res.json({ success: true });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Record Quick Inventory Action (Technician "לקחתי" / "החזרתי")
-app.post('/api/warehouse/transaction', (req, res) => {
+app.post('/api/warehouse/transaction', async (req, res) => {
     const { item_id, action_type, quantity_changed, worker_name } = req.body;
 
     if (!item_id || !action_type || !worker_name) {
@@ -472,10 +497,17 @@ app.post('/api/warehouse/transaction', (req, res) => {
 
     const changeAmount = Math.max(1, parseInt(quantity_changed) || 1);
 
-    warehouseDb.get("SELECT * FROM inventory_items WHERE id = ?", [item_id], (err, item) => {
-        if (err || !item) return res.status(404).json({ error: 'פריט לא נמצא במחסן' });
+    try {
+        const itemRes = await warehouseDb.execute({
+            sql: "SELECT * FROM inventory_items WHERE id = ?",
+            args: [item_id]
+        });
+        if (itemRes.rows.length === 0) {
+            return res.status(404).json({ error: 'פריט לא נמצא במחסן' });
+        }
 
-        let newQuantity = item.quantity;
+        const item = itemRes.rows[0];
+        let newQuantity = Number(item.quantity);
         if (action_type === 'take') {
             if (item.quantity < changeAmount) {
                 return res.status(400).json({ error: `במלאי יש רק ${item.quantity} יחידות. לא ניתן לקחת ${changeAmount}` });
@@ -487,44 +519,41 @@ app.post('/api/warehouse/transaction', (req, res) => {
             return res.status(400).json({ error: 'סוג פעולה לא תקין' });
         }
 
-        // Update Item Quantity
-        warehouseDb.run(
-            "UPDATE inventory_items SET quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-            [newQuantity, item_id],
-            function(updateErr) {
-                if (updateErr) return res.status(500).json({ error: updateErr.message });
+        await warehouseDb.execute({
+            sql: "UPDATE inventory_items SET quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            args: [newQuantity, item_id]
+        });
 
-                // Record Transaction Log
-                warehouseDb.run(
-                    `INSERT INTO inventory_transactions 
-                     (item_id, item_name, action_type, quantity_changed, quantity_after, worker_name) 
-                     VALUES (?, ?, ?, ?, ?, ?)`,
-                    [item_id, item.name, action_type, changeAmount, newQuantity, worker_name.trim()],
-                    function(logErr) {
-                        if (logErr) console.error("Transaction log error:", logErr);
-                        res.json({
-                            success: true,
-                            item_name: item.name,
-                            action_type: action_type,
-                            quantity_changed: changeAmount,
-                            new_quantity: newQuantity,
-                            shelf_location: item.shelf_location,
-                            worker_name: worker_name,
-                            timestamp: new Date().toISOString()
-                        });
-                    }
-                );
-            }
-        );
-    });
+        await warehouseDb.execute({
+            sql: `INSERT INTO inventory_transactions 
+                  (item_id, item_name, action_type, quantity_changed, quantity_after, worker_name) 
+                  VALUES (?, ?, ?, ?, ?, ?)`,
+            args: [item_id, item.name, action_type, changeAmount, newQuantity, worker_name.trim()]
+        });
+
+        res.json({
+            success: true,
+            item_name: item.name,
+            action_type: action_type,
+            quantity_changed: changeAmount,
+            new_quantity: newQuantity,
+            shelf_location: item.shelf_location,
+            worker_name: worker_name,
+            timestamp: new Date().toISOString()
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Get Audit Transactions Log
-app.get('/api/warehouse/transactions', (req, res) => {
-    warehouseDb.all("SELECT * FROM inventory_transactions ORDER BY id DESC LIMIT 100", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
+app.get('/api/warehouse/transactions', async (req, res) => {
+    try {
+        const result = await warehouseDb.execute("SELECT * FROM inventory_transactions ORDER BY id DESC LIMIT 100");
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Start server
