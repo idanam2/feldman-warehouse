@@ -346,7 +346,29 @@ app.post('/api/warehouse/workers', (req, res) => {
     });
 });
 
-// Get inventory items (with optional category or search filter)
+// Edit worker name
+app.put('/api/warehouse/workers/:id', (req, res) => {
+    const workerId = req.params.id;
+    const { full_name } = req.body;
+    if (!full_name || !full_name.trim()) {
+        return res.status(400).json({ error: 'שם עובד הוא שדה חובה' });
+    }
+    warehouseDb.run("UPDATE inventory_workers SET full_name = ? WHERE id = ?", [full_name.trim(), workerId], function(err) {
+        if (err) return res.status(400).json({ error: 'עובד בשם זה כבר קיים' });
+        res.json({ success: true });
+    });
+});
+
+// Delete worker
+app.delete('/api/warehouse/workers/:id', (req, res) => {
+    const workerId = req.params.id;
+    warehouseDb.run("DELETE FROM inventory_workers WHERE id = ?", [workerId], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true });
+    });
+});
+
+// Get inventory items (sorted by physical shelf location 1-1 to 13-4)
 app.get('/api/warehouse/items', (req, res) => {
     const { search, shelf } = req.query;
     let query = "SELECT * FROM inventory_items WHERE 1=1";
@@ -363,7 +385,8 @@ app.get('/api/warehouse/items', (req, res) => {
         params.push(shelf);
     }
 
-    query += " ORDER BY name ASC";
+    // Natural sort by shelf number (1 to 13), level (1 to 4), then item name
+    query += " ORDER BY CAST(substr(shelf_location, 1, instr(shelf_location, '-') - 1) AS INTEGER) ASC, CAST(substr(shelf_location, instr(shelf_location, '-') + 1) AS INTEGER) ASC, name ASC";
 
     warehouseDb.all(query, params, (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });

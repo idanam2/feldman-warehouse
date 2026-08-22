@@ -386,6 +386,7 @@
             
             if (allWorkers.length === 0) {
                 container.innerHTML = '<div class="text-slate-400 font-semibold p-4">אין עובדים במערכת</div>';
+                adminContainer.innerHTML = '<div class="text-slate-400 font-semibold p-2">אין עובדים רשומים</div>';
                 return;
             }
 
@@ -398,10 +399,59 @@
             `).join('');
 
             adminContainer.innerHTML = allWorkers.map(w => `
-                <div class="bg-slate-100 border border-slate-300 text-slate-800 text-lg font-bold px-4 py-2 rounded-xl flex items-center gap-3">
+                <div class="bg-slate-100 border border-slate-300 text-slate-800 text-lg font-bold px-4 py-2 rounded-xl flex items-center gap-3 shadow-sm">
                     <span>${w.full_name}</span>
+                    <button onclick="editWorker(${w.id}, '${w.full_name}')" class="text-blue-600 hover:text-blue-800 px-2.5 py-1 text-sm font-bold bg-white rounded-lg border border-blue-200 shadow-sm flex items-center gap-1">
+                        <i class="fa-solid fa-pen text-xs"></i> ערוך
+                    </button>
+                    <button onclick="deleteWorker(${w.id}, '${w.full_name}')" class="text-rose-600 hover:text-rose-800 px-2 py-1 text-sm font-bold bg-white rounded-lg border border-rose-200 shadow-sm">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
+                    </button>
                 </div>
             `).join('');
+        }
+
+        // Edit Worker Name
+        async function editWorker(id, currentName) {
+            const newName = prompt("הזן שם מעודכן לעובד:", currentName);
+            if (!newName || !newName.trim() || newName.trim() === currentName) return;
+
+            try {
+                const res = await fetch(`/api/warehouse/workers/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ full_name: newName.trim() })
+                });
+                if (res.ok) {
+                    if (selectedWorker === currentName) {
+                        selectedWorker = newName.trim();
+                        document.getElementById('selected-worker-name').textContent = selectedWorker;
+                    }
+                    loadWorkers();
+                } else {
+                    const data = await res.json();
+                    alert(data.error || "שגיאה בעדכון שם העובד");
+                }
+            } catch (err) {
+                console.error("Error editing worker:", err);
+            }
+        }
+
+        // Delete Worker
+        async function deleteWorker(id, name) {
+            if (!confirm(`האם אתה בטוח שברצונך למחוק את העובד "${name}"?`)) return;
+            try {
+                const res = await fetch(`/api/warehouse/workers/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    if (selectedWorker === name) {
+                        selectedWorker = '';
+                        document.getElementById('selected-worker-badge').classList.add('hidden');
+                    }
+                    loadWorkers();
+                }
+            } catch (err) {
+                console.error("Error deleting worker:", err);
+            }
         }
 
         // Select Worker
@@ -424,7 +474,7 @@
             }
         }
 
-        // Filter & Render Technician Items Grid
+        // Filter & Render Technician Items Grid (Sorted by Shelf Location 1-1 to 13-4)
         function filterItems() {
             const searchTerm = document.getElementById('tech-search-input').value.trim().toLowerCase();
             const selectedShelf = document.getElementById('tech-shelf-select').value;
@@ -436,6 +486,15 @@
                     item.shelf_location.toLowerCase().includes(searchTerm);
                 const matchesShelf = !selectedShelf || item.shelf_location === selectedShelf;
                 return matchesSearch && matchesShelf;
+            });
+
+            // Sort filtered items physically from shelf 1-1 up to 13-4
+            filtered.sort((a, b) => {
+                const [shelfA, levelA] = a.shelf_location.split('-').map(Number);
+                const [shelfB, levelB] = b.shelf_location.split('-').map(Number);
+                if (shelfA !== shelfB) return shelfA - shelfB;
+                if (levelA !== levelB) return levelA - levelB;
+                return a.name.localeCompare(b.name, 'he');
             });
 
             document.getElementById('items-count-badge').textContent = `מציג ${filtered.length} מתוך ${allItems.length} פריטים`;
@@ -525,14 +584,10 @@
             }
         }
 
-        // Show Toast
+        // Show Toast (Disabled per user request)
         function showToast(text) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-text').textContent = text;
-            toast.classList.remove('hidden');
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 5000);
+            // Notifications disabled
+            return;
         }
 
         function hideToast() {
