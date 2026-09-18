@@ -1,0 +1,25 @@
+{
+  "name": "feldman-warehouse-iis",
+  "version": "1.0.0",
+  "description": "Feldman Warehouse Management System - Production IIS & SQLEXPRESS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "warehouse",
+    "inventory",
+    "iis",
+    "sqlexpress",
+    "mssql",
+    "feldman"
+  ],
+  "author": "Feldman Engineering",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mssql": "^10.0.2"
+  }
+}
